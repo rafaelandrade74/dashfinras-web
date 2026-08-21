@@ -1,0 +1,17 @@
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--p-surface-50, #f5f5f5);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-subtitle {
+  color: var(--p-text-muted-color, #6b7280);
+  margin: 0 0 1.5rem;
+}

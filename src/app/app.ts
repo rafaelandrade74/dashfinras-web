@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -8,4 +9,10 @@ import { Component, signal } from '@angular/core';
 })
 export class App {
   protected readonly title = signal('dashfinras-web');
+
+  constructor(protected readonly authService: AuthService) {}
+
+  sair(): void {
+    this.authService.logout();
+  }
 }

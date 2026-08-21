@@ -1,1 +1,11 @@
+<p-toolbar *ngIf="authService.isAuthenticated">
+  <ng-template pTemplate="start">
+    <span class="app-title">DashFinRas</span>
+  </ng-template>
+  <ng-template pTemplate="end">
+    <span class="app-user">{{ authService.nomeUsuario }}</span>
+    <p-button icon="pi pi-sign-out" [text]="true" (onClick)="sair()"></p-button>
+  </ng-template>
+</p-toolbar>
+
 <router-outlet></router-outlet>

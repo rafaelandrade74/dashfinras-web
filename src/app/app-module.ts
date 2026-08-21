@@ -11,6 +11,8 @@ import {
 } from 'keycloak-angular';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
+import { ToolbarModule } from 'primeng/toolbar';
+import { ButtonModule } from 'primeng/button';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -26,7 +28,9 @@ const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondit
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    ToolbarModule,
+    ButtonModule
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
