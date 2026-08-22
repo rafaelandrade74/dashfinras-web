@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--mat-sys-surface);
 }
 
 .cadastro-card {
@@ -12,7 +12,7 @@
 }
 
 .cadastro-subtitle {
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--mat-sys-on-surface-variant);
   margin-top: 0;
 }
 
@@ -27,7 +27,7 @@
 }
 
 .cadastro-erro {
-  color: #b00020;
+  color: var(--mat-sys-error);
   margin: 0 0 0.5rem;
 }
 
