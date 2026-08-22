@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { accountGuard } from './core/guards/account.guard';
 
 const routes: Routes = [
   { path: '', redirectTo: 'paineis', pathMatch: 'full' },
@@ -9,8 +10,13 @@ const routes: Routes = [
     loadChildren: () => import('./features/auth/auth-module').then(m => m.AuthModule)
   },
   {
-    path: 'paineis',
+    path: 'completar-cadastro',
     canActivate: [authGuard],
+    loadChildren: () => import('./features/cadastro/cadastro-module').then(m => m.CadastroModule)
+  },
+  {
+    path: 'paineis',
+    canActivate: [authGuard, accountGuard],
     loadChildren: () => import('./features/painel/painel-module').then(m => m.PainelModule)
   }
 ];

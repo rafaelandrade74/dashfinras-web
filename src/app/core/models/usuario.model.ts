@@ -14,6 +14,6 @@ export interface GetUserDto {
 export interface AddUserDto {
   firstName: string;
   lastName: string;
-  telephone: string;
+  telephone?: string;
   gestorUserId?: string;
 }

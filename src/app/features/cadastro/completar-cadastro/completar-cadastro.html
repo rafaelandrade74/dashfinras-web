@@ -1,0 +1,43 @@
+<div class="cadastro-page">
+  <mat-card class="cadastro-card">
+    <mat-card-header>
+      <mat-card-title>Complete seu cadastro</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="cadastro-subtitle">Antes de continuar, informe seu nome e sobrenome.</p>
+
+      <form [formGroup]="form" (ngSubmit)="salvar()" class="cadastro-form">
+        <mat-form-field appearance="outline" class="cadastro-field">
+          <mat-label>Nome</mat-label>
+          <input matInput formControlName="firstName" autocomplete="given-name" />
+          @if (form.controls['firstName'].invalid && form.controls['firstName'].touched) {
+            <mat-error>Nome é obrigatório</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="cadastro-field">
+          <mat-label>Sobrenome</mat-label>
+          <input matInput formControlName="lastName" autocomplete="family-name" />
+          @if (form.controls['lastName'].invalid && form.controls['lastName'].touched) {
+            <mat-error>Sobrenome é obrigatório</mat-error>
+          }
+        </mat-form-field>
+
+        @if (mensagemErro) {
+          <p class="cadastro-erro">{{ mensagemErro }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" class="cadastro-button" [disabled]="salvando">
+          @if (salvando) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <ng-container>
+              <mat-icon>check</mat-icon>
+              Concluir cadastro
+            </ng-container>
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
