@@ -9,10 +9,9 @@ import {
   INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
   type IncludeBearerTokenCondition
 } from 'keycloak-angular';
-import { providePrimeNG } from 'primeng/config';
-import Aura from '@primeuix/themes/aura';
-import { ToolbarModule } from 'primeng/toolbar';
-import { ButtonModule } from 'primeng/button';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -29,8 +28,9 @@ const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondit
   imports: [
     BrowserModule,
     AppRoutingModule,
-    ToolbarModule,
-    ButtonModule
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
@@ -46,11 +46,6 @@ const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondit
       initOptions: {
         onLoad: 'check-sso',
         silentCheckSsoRedirectUri: `${window.location.origin}/assets/silent-check-sso.html`
-      }
-    }),
-    providePrimeNG({
-      theme: {
-        preset: Aura
       }
     })
   ],

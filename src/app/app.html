@@ -1,11 +1,10 @@
-<p-toolbar *ngIf="authService.isAuthenticated">
-  <ng-template pTemplate="start">
-    <span class="app-title">DashFinRas</span>
-  </ng-template>
-  <ng-template pTemplate="end">
-    <span class="app-user">{{ authService.nomeUsuario }}</span>
-    <p-button icon="pi pi-sign-out" [text]="true" (onClick)="sair()"></p-button>
-  </ng-template>
-</p-toolbar>
+<mat-toolbar color="primary" *ngIf="authService.isAuthenticated">
+  <span class="app-title">DashFinRas</span>
+  <span class="app-spacer"></span>
+  <span class="app-user">{{ authService.nomeUsuario }}</span>
+  <button mat-icon-button (click)="sair()" aria-label="Sair">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
 
 <router-outlet></router-outlet>

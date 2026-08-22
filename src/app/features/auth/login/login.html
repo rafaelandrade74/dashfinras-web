@@ -1,13 +1,22 @@
 <div class="login-page">
-  <p-card class="login-card" header="DashFinRas">
-    <p class="login-subtitle">Gerenciamento de finanças pessoais e empresariais</p>
-
-    <p-button
-      label="Entrar com Keycloak"
-      icon="pi pi-sign-in"
-      styleClass="w-full"
-      [loading]="carregando"
-      (onClick)="entrar()">
-    </p-button>
-  </p-card>
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>DashFinRas</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="login-subtitle">Gerenciamento de finanças pessoais e empresariais</p>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-flat-button color="primary" class="login-button" [disabled]="carregando" (click)="entrar()">
+        @if (carregando) {
+          <mat-spinner diameter="20"></mat-spinner>
+        } @else {
+          <ng-container>
+            <mat-icon>login</mat-icon>
+            Entrar com Keycloak
+          </ng-container>
+        }
+      </button>
+    </mat-card-actions>
+  </mat-card>
 </div>

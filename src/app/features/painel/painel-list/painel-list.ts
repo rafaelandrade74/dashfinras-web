@@ -11,6 +11,7 @@ import { ResponsePainelDto } from '../../../core/models/painel.model';
 export class PainelList implements OnInit {
   paineis: ResponsePainelDto[] = [];
   carregando = false;
+  colunas = ['nome', 'usuarios'];
 
   constructor(private readonly painelService: PainelService) {}
 

@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: var(--p-surface-50, #f5f5f5);
+  background: #f5f5f5;
 }
 
 .login-card {
@@ -12,6 +12,14 @@
 }
 
 .login-subtitle {
-  color: var(--p-text-muted-color, #6b7280);
-  margin: 0 0 1.5rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+
+.login-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }

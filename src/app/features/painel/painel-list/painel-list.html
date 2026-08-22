@@ -1,23 +1,26 @@
 <div class="painel-list">
   <h1>Meus painéis</h1>
 
-  <p-table [value]="paineis" [loading]="carregando" dataKey="id">
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Nome</th>
-        <th>Usuários</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-painel>
-      <tr>
-        <td>{{ painel.nome }}</td>
-        <td>{{ painel.usuarios?.length ?? 0 }}</td>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr>
-        <td colspan="2">Nenhum painel encontrado.</td>
-      </tr>
-    </ng-template>
-  </p-table>
+  @if (carregando) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else {
+    <table mat-table [dataSource]="paineis" class="painel-table">
+      <ng-container matColumnDef="nome">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let painel">{{ painel.nome }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuarios">
+        <th mat-header-cell *matHeaderCellDef>Usuários</th>
+        <td mat-cell *matCellDef="let painel">{{ painel.usuarios?.length ?? 0 }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunas;"></tr>
+    </table>
+
+    @if (!paineis.length) {
+      <p class="painel-empty">Nenhum painel encontrado.</p>
+    }
+  }
 </div>
