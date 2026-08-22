@@ -4,7 +4,11 @@ import { authGuard } from './core/guards/auth.guard';
 import { accountGuard } from './core/guards/account.guard';
 
 const routes: Routes = [
-  { path: '', redirectTo: 'paineis', pathMatch: 'full' },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadChildren: () => import('./features/home/home-module').then(m => m.HomeModule)
+  },
   {
     path: 'login',
     loadChildren: () => import('./features/auth/auth-module').then(m => m.AuthModule)

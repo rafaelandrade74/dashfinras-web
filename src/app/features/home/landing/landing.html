@@ -1,0 +1,185 @@
+<header>
+  <div class="wrap nav-row">
+    <a class="brand" href="#top"><span class="dot">·</span>DashFinRas</a>
+    <nav class="links">
+      <a class="navlink" href="#recursos">Recursos</a>
+      <a class="navlink" href="#permissoes">Permissões</a>
+      <a class="navlink" href="#como-funciona">Como funciona</a>
+      <a class="btn btn-ghost btn-sm" [routerLink]="ctaLink">{{ navCtaLabel }}</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div>
+      <span class="eyebrow">Gestão financeira compartilhada</span>
+      <h1>As contas de casa e as da empresa, <em>cada uma no seu painel.</em></h1>
+      <div class="hero-rule"></div>
+      <p class="lede">DashFinRas organiza suas finanças pessoais e do negócio em painéis separados que você compartilha com quem precisa — sócio, cônjuge ou contador — cada um enxergando só o que deveria.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" [routerLink]="ctaLink">{{ ctaLabel }}</a>
+        <a class="btn btn-ghost" href="#como-funciona">Ver como funciona</a>
+      </div>
+      <p class="hero-note">Login único via Keycloak — sem senha nova pra decorar.</p>
+    </div>
+
+    <div class="ledger-card" aria-hidden="true">
+      <div class="ledger-head">
+        <span class="title">Painel · Família Andrade</span>
+        <div class="ledger-tabs">
+          <span class="tab active">Pessoal</span>
+          <span class="tab">Consultoria RA</span>
+        </div>
+      </div>
+      <div class="ledger-rows">
+        <div class="lrow">
+          <span class="mark">01</span>
+          <span class="label">Salário<span class="tag">crédito · dia 05</span></span>
+          <span class="amt in tnum">+ R$ 8.200,00</span>
+        </div>
+        <div class="lrow">
+          <span class="mark">02</span>
+          <span class="label">Aluguel<span class="tag">débito · dia 08</span></span>
+          <span class="amt out tnum">− R$ 2.400,00</span>
+        </div>
+        <div class="lrow">
+          <span class="mark">03</span>
+          <span class="label">Fornecedores<span class="tag">débito · dia 12</span></span>
+          <span class="amt out tnum">− R$ 1.150,00</span>
+        </div>
+        <div class="lrow">
+          <span class="mark">04</span>
+          <span class="label">Mercado<span class="tag">débito · dia 15</span></span>
+          <span class="amt out tnum">− R$ 640,00</span>
+        </div>
+      </div>
+      <div class="ledger-total">
+        <span class="lbl">Saldo do mês</span>
+        <span class="val tnum">R$ 4.010,00</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="recursos">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Fólios</span>
+        <h2>Tudo que um painel compartilhado precisa ter.</h2>
+        <p>Quatro peças resolvem o que mais complica quando dinheiro é dividido entre pessoas: quem vê o quê, quem lança o quê, e como entrar sem criar mais uma senha.</p>
+      </div>
+
+      <div class="folio-list">
+        <div class="folio" #folioRow>
+          <span class="fnum">Fólio<span>01</span></span>
+          <div>
+            <h3>Painéis compartilhados</h3>
+            <p>Convide quem precisa acompanhar ou lançar dados — sócio, cônjuge, contador — num painel só, sem planilha indo e voltando por e-mail.</p>
+          </div>
+        </div>
+        <div class="folio" #folioRow>
+          <span class="fnum">Fólio<span>02</span></span>
+          <div>
+            <h3>Permissões por papel</h3>
+            <p>Dono, administrador, membro ou visualizador: cada pessoa convidada tem exatamente o nível de acesso que a função dela pede, nem mais nem menos.</p>
+          </div>
+        </div>
+        <div class="folio" #folioRow>
+          <span class="fnum">Fólio<span>03</span></span>
+          <div>
+            <h3>Login único com Keycloak</h3>
+            <p>Autenticação OAuth2 pela sua conta existente. Nenhuma senha nova é criada nem guardada pelo DashFinRas.</p>
+          </div>
+        </div>
+        <div class="folio" #folioRow>
+          <span class="fnum">Fólio<span>04</span></span>
+          <div>
+            <h3>Pessoal e empresarial, sem misturar</h3>
+            <p>Casa e negócio vivem em painéis distintos, cada um com seu próprio time e seu próprio saldo — mas os dois a um clique de distância.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="permissoes">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Papéis no painel</span>
+        <h2>Cada convidado, com o carimbo certo.</h2>
+        <p>Ao adicionar alguém a um painel, você escolhe o papel — e isso decide o que essa pessoa pode ver e alterar.</p>
+      </div>
+
+      <div class="stamp-grid">
+        <div class="stamp">
+          <div class="ring">D</div>
+          <h3>Dono</h3>
+          <p>Criou o painel. Controla tudo — inclusive quem entra, quem sai e se o painel continua existindo.</p>
+        </div>
+        <div class="stamp">
+          <div class="ring">A</div>
+          <h3>Administrador</h3>
+          <p>Edita o painel e gerencia os demais usuários, com quase a mesma liberdade do dono.</p>
+        </div>
+        <div class="stamp">
+          <div class="ring">M</div>
+          <h3>Membro</h3>
+          <p>Lança e edita lançamentos no dia a dia, sem poder mexer em quem está no painel.</p>
+        </div>
+        <div class="stamp">
+          <div class="ring">V</div>
+          <h3>Visualizador</h3>
+          <p>Acompanha os números — ideal pro contador ou pra quem só precisa saber como estão as contas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="como-funciona">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Do zero ao primeiro painel</span>
+        <h2>Três passos, sem fricção.</h2>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="snum">1</div>
+          <h3>Entrar</h3>
+          <p>Autentique com a conta que você já usa, via Keycloak. Nada de cadastrar senha aqui.</p>
+        </div>
+        <div class="step">
+          <div class="snum">2</div>
+          <h3>Completar cadastro</h3>
+          <p>Só na primeira vez: seu nome, pra sabermos quem é quem dentro de cada painel.</p>
+        </div>
+        <div class="step">
+          <div class="snum">3</div>
+          <h3>Criar ou entrar num painel</h3>
+          <p>Comece um painel do zero ou aceite o convite de quem já tem um esperando por você.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="no-rule" id="comecar">
+    <div class="wrap cta-band">
+      <span class="eyebrow">Pronto pra abrir o livro</span>
+      <h2>Organize as contas — de casa e do negócio — num só lugar.</h2>
+      <a class="btn btn-primary" [routerLink]="ctaLink">{{ ctaLabel }}</a>
+      <div class="sig-line">assinado · dono do painel</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-row">
+    <span class="foot-brand">DashFinRas</span>
+    <div class="foot-links">
+      <a href="#recursos">Recursos</a>
+      <a href="#permissoes">Permissões</a>
+      <a href="#como-funciona">Como funciona</a>
+    </div>
+    <span class="foot-copy">© 2026 DashFinRas</span>
+  </div>
+</footer>
