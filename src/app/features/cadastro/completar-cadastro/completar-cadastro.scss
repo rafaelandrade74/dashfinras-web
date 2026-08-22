@@ -1,0 +1,41 @@
+.cadastro-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+.cadastro-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.cadastro-subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 0;
+}
+
+.cadastro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cadastro-field {
+  width: 100%;
+}
+
+.cadastro-erro {
+  color: #b00020;
+  margin: 0 0 0.5rem;
+}
+
+.cadastro-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
