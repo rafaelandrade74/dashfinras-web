@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -8,13 +8,17 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './login.scss',
   templateUrl: './login.html',
 })
-export class Login {
+export class Login implements OnInit {
   carregando = false;
 
   constructor(
     private readonly authService: AuthService,
     private readonly route: ActivatedRoute
   ) {}
+
+  ngOnInit(): void {
+    this.entrar();
+  }
 
   entrar(): void {
     this.carregando = true;
