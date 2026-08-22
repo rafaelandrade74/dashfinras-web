@@ -13,7 +13,7 @@ export const accountGuard: CanActivateFn = (_route, state) => {
   return accountService.obterUsuario().pipe(
     map(() => true),
     catchError((error) => {
-      const erros = (error?.error ?? []) as Erro[];
+      const erros = Array.isArray(error?.error) ? (error.error as Erro[]) : [];
       const naoCadastrado = erros.some(erro => erro.codigo === USER_NOT_FOUND);
 
       if (naoCadastrado) {

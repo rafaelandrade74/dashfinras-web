@@ -57,4 +57,15 @@ describe('accountGuard', () => {
     expect(result).toBe(true);
     expect(router.parseUrl).not.toHaveBeenCalled();
   });
+
+  it('permite acesso quando o corpo do erro não é um array (ex: falha de rede)', async () => {
+    accountService.obterUsuario.mockReturnValue(
+      throwError(() => ({ error: 'Erro inesperado do servidor' }))
+    );
+
+    const result = await runGuard();
+
+    expect(result).toBe(true);
+    expect(router.parseUrl).not.toHaveBeenCalled();
+  });
 });
