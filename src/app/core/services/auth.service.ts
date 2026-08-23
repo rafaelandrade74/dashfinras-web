@@ -43,9 +43,17 @@ export class AuthService {
     }
   }
 
-  async signUp(email: string, password: string): Promise<AuthResult> {
+  async signUp(email: string, password: string, redirectUrl?: string): Promise<AuthResult> {
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const emailRedirectTo = redirectUrl
+        ? `${window.location.origin}/login?redirectUrl=${encodeURIComponent(redirectUrl)}`
+        : `${window.location.origin}/login`;
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo }
+      });
       if (error) {
         return { error: this.traduzirErro(error.message) };
       }

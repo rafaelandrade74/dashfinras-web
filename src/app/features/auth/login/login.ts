@@ -147,7 +147,7 @@ export class Login {
     this.mensagemErro.set(undefined);
 
     this.authService
-      .signUp(email, senha)
+      .signUp(email, senha, this.redirectUrl)
       .then((resultado) => {
         if (resultado.error) {
           this.mensagemErro.set(resultado.error);

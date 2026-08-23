@@ -102,4 +102,30 @@ describe('AuthService', () => {
       error: 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.'
     });
   });
+
+  it('usa /login como emailRedirectTo quando nenhuma redirectUrl é informada', async () => {
+    signUp.mockResolvedValue({ data: { session: null, user: { id: '1' } }, error: null });
+
+    await service.signUp('novo@exemplo.com', 'SenhaForte123!');
+
+    expect(signUp).toHaveBeenCalledWith({
+      email: 'novo@exemplo.com',
+      password: 'SenhaForte123!',
+      options: { emailRedirectTo: `${window.location.origin}/login` }
+    });
+  });
+
+  it('embute a redirectUrl informada no link de confirmação de e-mail', async () => {
+    signUp.mockResolvedValue({ data: { session: null, user: { id: '1' } }, error: null });
+
+    await service.signUp('novo@exemplo.com', 'SenhaForte123!', '/paineis/123');
+
+    expect(signUp).toHaveBeenCalledWith({
+      email: 'novo@exemplo.com',
+      password: 'SenhaForte123!',
+      options: {
+        emailRedirectTo: `${window.location.origin}/login?redirectUrl=%2Fpaineis%2F123`
+      }
+    });
+  });
 });

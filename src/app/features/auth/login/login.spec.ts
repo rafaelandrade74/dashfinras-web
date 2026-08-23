@@ -135,6 +135,11 @@ describe('Login', () => {
     component.criarConta();
     await fixture.whenStable();
 
+    expect(authServiceMock.signUp).toHaveBeenCalledWith(
+      'novo@exemplo.com',
+      'SenhaForte123!',
+      '/paineis'
+    );
     expect(router.navigate).toHaveBeenCalledWith(['/completar-cadastro'], {
       queryParams: { redirectUrl: '/paineis' }
     });
