@@ -3,38 +3,7 @@ import { Router } from '@angular/router';
 import { PainelService } from '../../../core/services/painel.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ResponsePainelDto } from '../../../core/models/painel.model';
-
-interface KpiCard {
-  label: string;
-  valor: string;
-  cor: 'teal' | 'danger' | 'ink';
-  delta: string;
-  deltaDirecao: 'up' | 'down';
-}
-
-interface BarraMes {
-  mes: string;
-  receita: number;
-  despesa: number;
-}
-
-interface Orcamento {
-  categoria: string;
-  gasto: number;
-  limite: number;
-  status: 'ok' | 'no-limite' | 'estourado';
-}
-
-interface Transacao {
-  descricao: string;
-  categoria: string;
-  data: string;
-  valor: string;
-  tipo: 'entrada' | 'saida';
-  icone: string;
-  corAvatar: string;
-}
+import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
 
 interface NavItem {
   icone: string;
@@ -43,6 +12,15 @@ interface NavItem {
   badge?: number;
   ativo?: boolean;
 }
+
+const AVATAR_CORES = ['teal', 'accent', 'ink'] as const;
+
+const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
+  [PainelPermissao.Dono]: { label: 'Dono', classe: 'badge-dono' },
+  [PainelPermissao.Administrador]: { label: 'Adm', classe: 'badge-adm' },
+  [PainelPermissao.Membro]: { label: 'Membro', classe: 'badge-membro' },
+  [PainelPermissao.Visualizador]: { label: 'Visualizador', classe: 'badge-visualizador' },
+};
 
 @Component({
   selector: 'app-painel-list',
@@ -56,48 +34,13 @@ export class PainelList implements OnInit {
   readonly paineis = signal<ResponsePainelDto[]>([]);
   readonly carregando = signal(false);
 
-  periodo: '7d' | 'mes' | 'ano' = 'mes';
   menuUsuarioAberto = false;
 
   readonly navItems: NavItem[] = [
-    { icone: 'ti-layout-dashboard', label: 'Painel', ativo: true },
+    { icone: 'ti-layout-dashboard', label: 'Painéis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
-    { icone: 'ti-chart-pie', label: 'Orçamentos', badge: 2 },
-    { icone: 'ti-target-arrow', label: 'Metas' },
     { icone: 'ti-report-money', label: 'Relatórios' },
     { icone: 'ti-settings', label: 'Configurações' },
-  ];
-
-  readonly kpis: KpiCard[] = [
-    { label: 'Receitas', valor: 'R$ 8.420,00', cor: 'teal', delta: '+12,4%', deltaDirecao: 'up' },
-    { label: 'Despesas', valor: 'R$ 5.180,50', cor: 'danger', delta: '+3,1%', deltaDirecao: 'up' },
-    { label: 'Saldo', valor: 'R$ 3.239,50', cor: 'ink', delta: '+8,9%', deltaDirecao: 'up' },
-    { label: 'Economia', valor: '38,5%', cor: 'ink', delta: '-2,0%', deltaDirecao: 'down' },
-  ];
-
-  readonly barras: BarraMes[] = [
-    { mes: 'Mar', receita: 62, despesa: 44 },
-    { mes: 'Abr', receita: 70, despesa: 50 },
-    { mes: 'Mai', receita: 58, despesa: 46 },
-    { mes: 'Jun', receita: 80, despesa: 52 },
-    { mes: 'Jul', receita: 74, despesa: 60 },
-    { mes: 'Ago', receita: 84, despesa: 51 },
-  ];
-
-  readonly orcamentos: Orcamento[] = [
-    { categoria: 'Alimentação', gasto: 780, limite: 900, status: 'ok' },
-    { categoria: 'Transporte', gasto: 410, limite: 450, status: 'no-limite' },
-    { categoria: 'Lazer', gasto: 320, limite: 300, status: 'estourado' },
-    { categoria: 'Moradia', gasto: 1500, limite: 1800, status: 'ok' },
-    { categoria: 'Saúde', gasto: 210, limite: 400, status: 'ok' },
-  ];
-
-  readonly transacoes: Transacao[] = [
-    { descricao: 'Salário', categoria: 'Renda', data: 'Hoje', valor: '+ R$ 5.200,00', tipo: 'entrada', icone: 'ti-briefcase', corAvatar: 'teal' },
-    { descricao: 'Supermercado Pão de Açúcar', categoria: 'Alimentação', data: 'Ontem', valor: '- R$ 284,90', tipo: 'saida', icone: 'ti-shopping-cart', corAvatar: 'accent' },
-    { descricao: 'Uber', categoria: 'Transporte', data: '21 ago', valor: '- R$ 32,40', tipo: 'saida', icone: 'ti-car', corAvatar: 'ink' },
-    { descricao: 'Cinema', categoria: 'Lazer', data: '20 ago', valor: '- R$ 68,00', tipo: 'saida', icone: 'ti-movie', corAvatar: 'danger' },
-    { descricao: 'Freelance design', categoria: 'Renda extra', data: '19 ago', valor: '+ R$ 900,00', tipo: 'entrada', icone: 'ti-palette', corAvatar: 'teal' },
   ];
 
   constructor(
@@ -130,8 +73,28 @@ export class PainelList implements OnInit {
     });
   }
 
-  selecionarPeriodo(periodo: '7d' | 'mes' | 'ano'): void {
-    this.periodo = periodo;
+  papelDoUsuario(painel: ResponsePainelDto): { label: string; classe: string } {
+    const usuarioAtualId = this.accountService.usuarioAtual?.id;
+    const usuario = painel.usuarios?.find((u) => u.id === usuarioAtualId);
+    const permissao = usuario?.idPermissao ?? PainelPermissao.Visualizador;
+    return PAPEL_INFO[permissao];
+  }
+
+  membrosVisiveis(painel: ResponsePainelDto): { iniciais: string; cor: string }[] {
+    return (painel.usuarios ?? []).slice(0, 3).map((usuario, indice) => ({
+      iniciais: this.iniciais(usuario.firstName, usuario.lastName),
+      cor: AVATAR_CORES[indice % AVATAR_CORES.length],
+    }));
+  }
+
+  membrosOcultos(painel: ResponsePainelDto): number {
+    return Math.max(0, (painel.usuarios?.length ?? 0) - 3);
+  }
+
+  private iniciais(firstName?: string, lastName?: string): string {
+    const primeira = firstName?.charAt(0) ?? '';
+    const segunda = lastName?.charAt(0) ?? '';
+    return (primeira + segunda).toUpperCase() || '?';
   }
 
   novoPainel(): void {
@@ -148,13 +111,5 @@ export class PainelList implements OnInit {
     if (this.menuUsuarioAberto && !this.sidebarFooter?.nativeElement.contains(event.target as Node)) {
       this.menuUsuarioAberto = false;
     }
-  }
-
-  barraMaxima(): number {
-    return Math.max(...this.barras.flatMap((b) => [b.receita, b.despesa]));
-  }
-
-  orcamentoPercentual(orcamento: Orcamento): number {
-    return Math.min(100, Math.round((orcamento.gasto / orcamento.limite) * 100));
   }
 }

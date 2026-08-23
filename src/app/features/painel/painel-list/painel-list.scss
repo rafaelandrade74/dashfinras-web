@@ -24,7 +24,6 @@
 h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; margin: 0; color: var(--ink); }
 
 .mono { font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace; }
-.tnum { font-variant-numeric: tabular-nums; }
 
 .painel-shell {
   display: grid;
@@ -170,7 +169,6 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 .avatar-teal { background: var(--teal); }
 .avatar-accent { background: var(--accent); }
 .avatar-ink { background: var(--ink); }
-.avatar-danger { background: var(--danger); }
 
 .user-name {
   font-size: 13.5px;
@@ -205,34 +203,6 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 
 .topbar h1 { font-size: 22px; font-weight: 500; }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.periodo-pill {
-  display: flex;
-  gap: 2px;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 20px;
-  padding: 3px;
-}
-
-.periodo-item {
-  border: none;
-  background: transparent;
-  color: var(--ink-soft);
-  font-size: 12.5px;
-  padding: 5px 12px;
-  border-radius: 16px;
-  cursor: pointer;
-  font-family: inherit;
-
-  &.active { background: var(--accent); color: var(--paper); }
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -252,18 +222,17 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--paper);
-  color: var(--ink-soft);
-  border: 1px solid var(--rule);
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
   border-radius: 3px;
-  padding: 9px 16px;
+  padding: 10px 18px;
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
+  font-family: inherit;
 
   i.ti { font-size: 15px; }
-
-  &:hover { border-color: var(--accent); color: var(--ink); }
 }
 
 .btn-registrar {
@@ -283,8 +252,19 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 }
 
 /* ============ Content ============ */
-.content {
-  padding: 24px 28px 40px;
+.content { padding: 28px; flex: 1; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
 }
 
 .card {
@@ -292,232 +272,88 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   border: 1px solid var(--rule);
   border-radius: 4px;
   padding: 20px 22px;
-}
-
-.card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 18px;
-
-  h2 { font-size: 15.5px; font-weight: 500; }
-}
-
-.ver-detalhes {
-  font-size: 11px;
-  color: var(--accent);
-  text-decoration: none;
-
-  &:hover { color: var(--accent-strong); }
-}
-
-/* ============ KPIs ============ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.kpi-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--paper-raised);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 20px 22px;
+  gap: 16px;
+  cursor: pointer;
+
+  &:hover { border-color: var(--accent); }
 }
 
-.kpi-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  color: var(--ink-faint);
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
-.kpi-valor {
-  font-size: 24px;
+.card-name {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
   font-weight: 500;
 }
-.kpi-teal { color: var(--teal); }
-.kpi-danger { color: var(--danger); }
-.kpi-ink { color: var(--ink); }
 
-.kpi-delta {
-  font-size: 12px;
-  color: var(--ink-faint);
-
-  span.up { color: var(--teal); font-weight: 500; }
-  span.down { color: var(--danger); font-weight: 500; }
-}
-
-/* ============ Grid principal ============ */
-.painel-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-@media (max-width: 960px) {
-  .painel-grid { grid-template-columns: 1fr; }
-}
-
-/* ---- Gráfico de barras ---- */
-.bars {
+.card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  background: var(--teal-wash);
+  color: var(--teal);
   display: flex;
-  align-items: flex-end;
-  gap: 18px;
-  height: 160px;
-  padding-top: 8px;
-}
-
-.bar-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  height: 100%;
-}
-
-.bar-cols {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  width: 100%;
   justify-content: center;
-}
-
-.bar {
-  width: 12px;
-  border-radius: 2px 2px 0 0;
-  min-height: 4px;
-}
-.bar-receita { background: var(--teal); }
-.bar-despesa { background: var(--danger); opacity: 0.65; }
-
-.bar-mes {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--ink-faint);
-}
-
-.bar-legenda {
-  display: flex;
-  gap: 20px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--rule);
-}
-
-.legenda-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink-soft);
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.dot-teal { background: var(--teal); }
-.dot-danger { background: var(--danger); opacity: 0.65; }
-
-/* ---- Orçamentos ---- */
-.orcamentos-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.orcamento-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13.5px;
-  margin-bottom: 6px;
-}
-
-.orcamento-valores { color: var(--ink-faint); font-size: 11px; }
-
-.orcamento-barra {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--rule);
-  overflow: hidden;
-}
-
-.orcamento-progresso {
-  height: 100%;
-  border-radius: 3px;
-
-  &.status-ok { background: var(--teal); }
-  &.status-no-limite { background: var(--accent); }
-  &.status-estourado { background: var(--danger); }
-}
-
-/* ---- Transações ---- */
-.transacoes-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.transacao-item {
-  display: grid;
-  grid-template-columns: 36px 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 13px 0;
-  border-bottom: 1px dashed var(--rule);
-
-  &:last-child { border-bottom: none; }
-
-  &:hover {
-    background: var(--teal-wash);
-    margin: 0 -22px;
-    padding: 13px 22px;
-  }
-}
-
-.transacao-item .avatar {
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
   font-size: 16px;
-
-  i.ti { font-size: 16px; }
 }
 
-.transacao-info {
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  padding: 3px 9px 3px 7px;
+  border-radius: 20px;
+  width: fit-content;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+.badge-dono { background: var(--accent-wash); color: var(--accent-strong); .badge-dot { background: var(--accent); } }
+.badge-adm { background: var(--teal-wash); color: var(--teal); .badge-dot { background: var(--teal); } }
+.badge-membro { background: rgba(22, 35, 27, 0.06); color: var(--ink-soft); .badge-dot { background: var(--ink-soft); } }
+.badge-visualizador { background: rgba(22, 35, 27, 0.06); color: var(--ink-faint); .badge-dot { background: var(--ink-faint); } }
+
+.card-bottom {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
 }
 
-.transacao-descricao {
-  font-size: 14px;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.transacao-categoria {
+.stack { display: flex; }
+.stack .avatar {
+  width: 26px;
+  height: 26px;
   font-size: 11px;
-  color: var(--ink-faint);
+  border: 2px solid var(--paper-raised);
+  margin-left: -8px;
+
+  &:first-child { margin-left: 0; }
 }
+.avatar-more { background: var(--rule); color: var(--ink-soft); }
 
-.transacao-valor {
-  font-size: 13.5px;
+.card-arrow { font-size: 15px; color: var(--ink-faint); }
 
-  &.positivo { color: var(--teal); }
-  &.negativo { color: var(--ink-soft); }
+.card-new {
+  border-style: dashed;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  gap: 8px;
+  font-size: 20px;
+
+  span { font-size: 14px; }
+
+  &:hover { color: var(--accent); border-color: var(--accent); }
 }
