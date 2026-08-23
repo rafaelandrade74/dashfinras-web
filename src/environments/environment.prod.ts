@@ -1,9 +1,8 @@
 export const environment = {
   production: true,
   apiUrl: '/api',
-  keycloak: {
-    url: '',
-    realm: 'dashfinras',
-    clientId: 'dashfinras-web'
+  supabase: {
+    url: 'https://SUPABASE_PROJECT_REF.supabase.co',
+    anonKey: 'SUPABASE_ANON_KEY_AQUI'
   }
 };

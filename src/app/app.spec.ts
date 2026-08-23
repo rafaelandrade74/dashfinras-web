@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
-import Keycloak from 'keycloak-js';
+import { AuthService } from './core/services/auth.service';
 import { App } from './app';
 
 describe('App', () => {
@@ -12,7 +12,7 @@ describe('App', () => {
       declarations: [
         App
       ],
-      providers: [{ provide: Keycloak, useValue: { authenticated: false } }],
+      providers: [{ provide: AuthService, useValue: { isAuthenticated: false } }],
     })
       .compileComponents();
   });

@@ -1,22 +1,246 @@
-<div class="login-page">
-  <mat-card class="login-card">
-    <mat-card-header>
-      <mat-card-title>DashFinRas</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <p class="login-subtitle">Gerenciamento de finanças pessoais e empresariais</p>
-    </mat-card-content>
-    <mat-card-actions>
-      <button mat-flat-button color="primary" class="login-button" [disabled]="carregando" (click)="entrar()">
-        @if (carregando) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          <ng-container>
-            <mat-icon>login</mat-icon>
-            Entrar com Keycloak
-          </ng-container>
-        }
-      </button>
-    </mat-card-actions>
-  </mat-card>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DashFinRas — início">
+      DashFinRas<span class="brand-dot"> ·</span>
+    </a>
+    <div class="topbar-note">
+      <i class="ti ti-shield-lock" aria-hidden="true"></i>
+      <span>Conexão segura</span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="card" role="main">
+      @if (modo === 'login') {
+        <div class="card-body">
+          <p class="eyebrow">Acesso à conta</p>
+          <h1 class="heading">Bem-vindo de volta</h1>
+          <p class="subhead">Entre com seu e-mail e senha para acessar seus painéis.</p>
+
+          <form class="form" [formGroup]="loginForm" (ngSubmit)="entrar()" novalidate>
+            <div class="field">
+              <label class="field-label" for="login-email">E-mail</label>
+              <input
+                class="field-input"
+                [class.error]="loginForm.controls['email'].invalid && loginForm.controls['email'].touched"
+                id="login-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="voce@exemplo.com"
+                aria-required="true"
+              />
+              @if (loginForm.controls['email'].invalid && loginForm.controls['email'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe um e-mail válido
+                </div>
+              }
+            </div>
+
+            <div class="field">
+              <div class="field-label-row">
+                <label class="field-label" for="login-senha">Senha</label>
+                <a class="link" href="javascript:void(0)" (click)="irPara('forgot')">Esqueci minha senha</a>
+              </div>
+              <input
+                class="field-input"
+                [class.error]="loginForm.controls['senha'].invalid && loginForm.controls['senha'].touched"
+                id="login-senha"
+                type="password"
+                formControlName="senha"
+                autocomplete="current-password"
+                placeholder="••••••••"
+                aria-required="true"
+              />
+              @if (loginForm.controls['senha'].invalid && loginForm.controls['senha'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Senha é obrigatória
+                </div>
+              }
+            </div>
+
+            @if (mensagemErro) {
+              <div class="api-error" role="alert">
+                <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                <span>{{ mensagemErro }}</span>
+              </div>
+            }
+
+            <button type="submit" class="btn-submit" [disabled]="carregando">
+              @if (carregando) {
+                <div class="spinner" aria-hidden="true"></div>
+                <span>Entrando…</span>
+              } @else {
+                <i class="ti ti-login-2" aria-hidden="true"></i>
+                <span>Entrar</span>
+              }
+            </button>
+          </form>
+        </div>
+
+        <div class="card-foot">
+          <span>Ainda não tem conta?</span>
+          <a class="link" href="javascript:void(0)" (click)="irPara('signup')">Criar conta</a>
+        </div>
+      }
+
+      @if (modo === 'signup') {
+        <div class="card-body">
+          <p class="eyebrow">Nova conta</p>
+          <h1 class="heading">Crie sua conta</h1>
+          <p class="subhead">Depois de criar a conta, você completa seu perfil na próxima etapa.</p>
+
+          <form class="form" [formGroup]="signupForm" (ngSubmit)="criarConta()" novalidate>
+            <div class="field">
+              <label class="field-label" for="signup-email">E-mail</label>
+              <input
+                class="field-input"
+                [class.error]="signupForm.controls['email'].invalid && signupForm.controls['email'].touched"
+                id="signup-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="voce@exemplo.com"
+                aria-required="true"
+              />
+              @if (signupForm.controls['email'].invalid && signupForm.controls['email'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe um e-mail válido
+                </div>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="signup-senha">Senha</label>
+              <input
+                class="field-input"
+                [class.error]="signupForm.controls['senha'].invalid && signupForm.controls['senha'].touched"
+                id="signup-senha"
+                type="password"
+                formControlName="senha"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                aria-required="true"
+              />
+              @if (signupForm.controls['senha'].invalid && signupForm.controls['senha'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> A senha deve ter no mínimo 8 caracteres
+                </div>
+              } @else {
+                <span class="field-hint">Mínimo de 8 caracteres.</span>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="signup-confirmar">Confirmar senha</label>
+              <input
+                class="field-input"
+                [class.error]="signupForm.controls['confirmarSenha'].invalid && signupForm.controls['confirmarSenha'].touched"
+                id="signup-confirmar"
+                type="password"
+                formControlName="confirmarSenha"
+                autocomplete="new-password"
+                placeholder="••••••••"
+                aria-required="true"
+              />
+              @if (signupForm.controls['confirmarSenha'].invalid && signupForm.controls['confirmarSenha'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Confirme sua senha
+                </div>
+              }
+            </div>
+
+            @if (mensagemErro) {
+              <div class="api-error" role="alert">
+                <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                <span>{{ mensagemErro }}</span>
+              </div>
+            }
+
+            <button type="submit" class="btn-submit" [disabled]="carregando">
+              @if (carregando) {
+                <div class="spinner" aria-hidden="true"></div>
+                <span>Criando conta…</span>
+              } @else {
+                <span>Criar conta</span>
+              }
+            </button>
+          </form>
+        </div>
+
+        <div class="card-foot">
+          <span>Já tem conta?</span>
+          <a class="link" href="javascript:void(0)" (click)="irPara('login')">Entrar</a>
+        </div>
+      }
+
+      @if (modo === 'forgot') {
+        <div class="card-body">
+          <p class="eyebrow">Recuperação de acesso</p>
+          <h1 class="heading">Esqueceu sua senha?</h1>
+          <p class="subhead">Informe seu e-mail e enviaremos um link para você redefinir a senha.</p>
+
+          <form class="form" [formGroup]="forgotForm" (ngSubmit)="enviarRecuperacao()" novalidate>
+            <div class="field">
+              <label class="field-label" for="forgot-email">E-mail</label>
+              <input
+                class="field-input"
+                [class.error]="forgotForm.controls['email'].invalid && forgotForm.controls['email'].touched"
+                id="forgot-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="voce@exemplo.com"
+                aria-required="true"
+              />
+              @if (forgotForm.controls['email'].invalid && forgotForm.controls['email'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe um e-mail válido
+                </div>
+              }
+            </div>
+
+            @if (mensagemErro) {
+              <div class="api-error" role="alert">
+                <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                <span>{{ mensagemErro }}</span>
+              </div>
+            }
+
+            <button type="submit" class="btn-submit" [disabled]="carregando">
+              @if (carregando) {
+                <div class="spinner" aria-hidden="true"></div>
+                <span>Enviando…</span>
+              } @else {
+                <span>Enviar link de recuperação</span>
+              }
+            </button>
+            <button type="button" class="btn-ghost" (click)="irPara('login')">Voltar ao login</button>
+          </form>
+        </div>
+      }
+
+      @if (modo === 'forgot-sent') {
+        <div class="card-body">
+          <p class="eyebrow">Recuperação de acesso</p>
+          <h1 class="heading">Verifique seu e-mail</h1>
+          <p class="subhead">
+            Se houver uma conta associada a esse endereço, você vai receber um link de redefinição
+            em instantes.
+          </p>
+
+          <div class="api-success" role="status">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>
+            <span>Link enviado para {{ emailRecuperacao }}</span>
+          </div>
+
+          <button type="button" class="btn-ghost" style="margin-top: 20px" (click)="irPara('login')">
+            Voltar ao login
+          </button>
+        </div>
+      }
+    </div>
+  </main>
+
+  <footer class="page-foot">© 2026 DashFinRas</footer>
 </div>
