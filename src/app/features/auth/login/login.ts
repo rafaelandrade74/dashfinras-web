@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -12,10 +12,10 @@ type Modo = 'login' | 'signup' | 'forgot' | 'forgot-sent';
   templateUrl: './login.html',
 })
 export class Login {
-  modo: Modo = 'login';
-  carregando = false;
-  mensagemErro?: string;
-  emailRecuperacao = '';
+  readonly modo = signal<Modo>('login');
+  readonly carregando = signal(false);
+  readonly mensagemErro = signal<string | undefined>(undefined);
+  readonly emailRecuperacao = signal('');
 
   readonly loginForm: FormGroup;
   readonly signupForm: FormGroup;
@@ -44,8 +44,8 @@ export class Login {
   }
 
   irPara(modo: Modo): void {
-    this.modo = modo;
-    this.mensagemErro = undefined;
+    this.modo.set(modo);
+    this.mensagemErro.set(undefined);
   }
 
   private get redirectUrl(): string {
@@ -58,25 +58,25 @@ export class Login {
       return;
     }
 
-    this.carregando = true;
-    this.mensagemErro = undefined;
+    this.carregando.set(true);
+    this.mensagemErro.set(undefined);
     const { email, senha } = this.loginForm.value;
 
     this.authService
       .login(email, senha)
       .then((resultado) => {
         if (resultado.error) {
-          this.mensagemErro = resultado.error;
+          this.mensagemErro.set(resultado.error);
           return;
         }
 
         this.router.navigateByUrl(this.redirectUrl);
       })
       .catch(() => {
-        this.mensagemErro = 'Não foi possível concluir o login. Tente novamente.';
+        this.mensagemErro.set('Não foi possível concluir o login. Tente novamente.');
       })
       .finally(() => {
-        this.carregando = false;
+        this.carregando.set(false);
       });
   }
 
@@ -88,18 +88,18 @@ export class Login {
 
     const { email, senha, confirmarSenha } = this.signupForm.value;
     if (senha !== confirmarSenha) {
-      this.mensagemErro = 'As senhas informadas não coincidem.';
+      this.mensagemErro.set('As senhas informadas não coincidem.');
       return;
     }
 
-    this.carregando = true;
-    this.mensagemErro = undefined;
+    this.carregando.set(true);
+    this.mensagemErro.set(undefined);
 
     this.authService
       .signUp(email, senha)
       .then((resultado) => {
         if (resultado.error) {
-          this.mensagemErro = resultado.error;
+          this.mensagemErro.set(resultado.error);
           return;
         }
 
@@ -108,10 +108,10 @@ export class Login {
         });
       })
       .catch(() => {
-        this.mensagemErro = 'Não foi possível concluir o cadastro. Tente novamente.';
+        this.mensagemErro.set('Não foi possível concluir o cadastro. Tente novamente.');
       })
       .finally(() => {
-        this.carregando = false;
+        this.carregando.set(false);
       });
   }
 
@@ -121,26 +121,26 @@ export class Login {
       return;
     }
 
-    this.carregando = true;
-    this.mensagemErro = undefined;
+    this.carregando.set(true);
+    this.mensagemErro.set(undefined);
     const { email } = this.forgotForm.value;
 
     this.authService
       .resetPassword(email)
       .then((resultado) => {
         if (resultado.error) {
-          this.mensagemErro = resultado.error;
+          this.mensagemErro.set(resultado.error);
           return;
         }
 
-        this.emailRecuperacao = email;
-        this.modo = 'forgot-sent';
+        this.emailRecuperacao.set(email);
+        this.modo.set('forgot-sent');
       })
       .catch(() => {
-        this.mensagemErro = 'Não foi possível enviar o link de recuperação. Tente novamente.';
+        this.mensagemErro.set('Não foi possível enviar o link de recuperação. Tente novamente.');
       })
       .finally(() => {
-        this.carregando = false;
+        this.carregando.set(false);
       });
   }
 }

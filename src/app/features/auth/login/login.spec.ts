@@ -38,7 +38,7 @@ describe('Login', () => {
   });
 
   it('deve iniciar na tela de login', () => {
-    expect(component.modo).toBe('login');
+    expect(component.modo()).toBe('login');
   });
 
   it('não chama authService.login com formulário inválido', () => {
@@ -60,23 +60,23 @@ describe('Login', () => {
     component.entrar();
     await fixture.whenStable();
 
-    expect(component.mensagemErro).toBe('E-mail ou senha incorretos.');
+    expect(component.mensagemErro()).toBe('E-mail ou senha incorretos.');
   });
 
   it('exibe mensagem de erro e para o carregamento quando authService.login rejeita', async () => {
     authServiceMock.login.mockRejectedValue(new Error('falha de rede'));
     component.loginForm.setValue({ email: 'rafael@exemplo.com', senha: 'senha123' });
     component.entrar();
-    expect(component.carregando).toBe(true);
+    expect(component.carregando()).toBe(true);
     await fixture.whenStable();
 
-    expect(component.carregando).toBe(false);
-    expect(component.mensagemErro).toBe('Não foi possível concluir o login. Tente novamente.');
+    expect(component.carregando()).toBe(false);
+    expect(component.mensagemErro()).toBe('Não foi possível concluir o login. Tente novamente.');
   });
 
   it('muda para a tela de cadastro', () => {
     component.irPara('signup');
-    expect(component.modo).toBe('signup');
+    expect(component.modo()).toBe('signup');
   });
 
   it('mostra erro quando as senhas de cadastro não coincidem', () => {
@@ -87,7 +87,7 @@ describe('Login', () => {
     });
     component.criarConta();
 
-    expect(component.mensagemErro).toBe('As senhas informadas não coincidem.');
+    expect(component.mensagemErro()).toBe('As senhas informadas não coincidem.');
     expect(authServiceMock.signUp).not.toHaveBeenCalled();
   });
 
@@ -98,7 +98,7 @@ describe('Login', () => {
     await fixture.whenStable();
 
     expect(authServiceMock.resetPassword).toHaveBeenCalledWith('rafael@exemplo.com');
-    expect(component.modo).toBe('forgot-sent');
-    expect(component.emailRecuperacao).toBe('rafael@exemplo.com');
+    expect(component.modo()).toBe('forgot-sent');
+    expect(component.emailRecuperacao()).toBe('rafael@exemplo.com');
   });
 });

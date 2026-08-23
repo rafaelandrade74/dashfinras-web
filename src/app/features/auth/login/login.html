@@ -11,7 +11,7 @@
 
   <main class="stage">
     <div class="card" role="main">
-      @if (modo === 'login') {
+      @if (modo() === 'login') {
         <div class="card-body">
           <p class="eyebrow">Acesso à conta</p>
           <h1 class="heading">Bem-vindo de volta</h1>
@@ -59,15 +59,15 @@
               }
             </div>
 
-            @if (mensagemErro) {
+            @if (mensagemErro()) {
               <div class="api-error" role="alert">
                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                <span>{{ mensagemErro }}</span>
+                <span>{{ mensagemErro() }}</span>
               </div>
             }
 
-            <button type="submit" class="btn-submit" [disabled]="carregando">
-              @if (carregando) {
+            <button type="submit" class="btn-submit" [disabled]="carregando()">
+              @if (carregando()) {
                 <div class="spinner" aria-hidden="true"></div>
                 <span>Entrando…</span>
               } @else {
@@ -84,7 +84,7 @@
         </div>
       }
 
-      @if (modo === 'signup') {
+      @if (modo() === 'signup') {
         <div class="card-body">
           <p class="eyebrow">Nova conta</p>
           <h1 class="heading">Crie sua conta</h1>
@@ -150,15 +150,15 @@
               }
             </div>
 
-            @if (mensagemErro) {
+            @if (mensagemErro()) {
               <div class="api-error" role="alert">
                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                <span>{{ mensagemErro }}</span>
+                <span>{{ mensagemErro() }}</span>
               </div>
             }
 
-            <button type="submit" class="btn-submit" [disabled]="carregando">
-              @if (carregando) {
+            <button type="submit" class="btn-submit" [disabled]="carregando()">
+              @if (carregando()) {
                 <div class="spinner" aria-hidden="true"></div>
                 <span>Criando conta…</span>
               } @else {
@@ -174,7 +174,7 @@
         </div>
       }
 
-      @if (modo === 'forgot') {
+      @if (modo() === 'forgot') {
         <div class="card-body">
           <p class="eyebrow">Recuperação de acesso</p>
           <h1 class="heading">Esqueceu sua senha?</h1>
@@ -200,15 +200,15 @@
               }
             </div>
 
-            @if (mensagemErro) {
+            @if (mensagemErro()) {
               <div class="api-error" role="alert">
                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                <span>{{ mensagemErro }}</span>
+                <span>{{ mensagemErro() }}</span>
               </div>
             }
 
-            <button type="submit" class="btn-submit" [disabled]="carregando">
-              @if (carregando) {
+            <button type="submit" class="btn-submit" [disabled]="carregando()">
+              @if (carregando()) {
                 <div class="spinner" aria-hidden="true"></div>
                 <span>Enviando…</span>
               } @else {
@@ -220,7 +220,7 @@
         </div>
       }
 
-      @if (modo === 'forgot-sent') {
+      @if (modo() === 'forgot-sent') {
         <div class="card-body">
           <p class="eyebrow">Recuperação de acesso</p>
           <h1 class="heading">Verifique seu e-mail</h1>
@@ -231,7 +231,7 @@
 
           <div class="api-success" role="status">
             <i class="ti ti-circle-check" aria-hidden="true"></i>
-            <span>Link enviado para {{ emailRecuperacao }}</span>
+            <span>Link enviado para {{ emailRecuperacao() }}</span>
           </div>
 
           <button type="button" class="btn-ghost" style="margin-top: 20px" (click)="irPara('login')">
