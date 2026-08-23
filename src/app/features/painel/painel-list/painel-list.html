@@ -16,8 +16,8 @@
 
     <div class="sidebar-footer" [class.open]="menuUsuarioAberto" #sidebarFooter>
       <button type="button" class="sidebar-footer-trigger" (click)="menuUsuarioAberto = !menuUsuarioAberto">
-        <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
-        <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
+        <div class="avatar avatar-teal">{{ nomeUsuario.charAt(0) }}</div>
+        <span class="user-name">{{ nomeUsuario }}</span>
         <i class="ti ti-chevron-up user-menu-chevron"></i>
       </button>
 
