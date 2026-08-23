@@ -1,0 +1,223 @@
+:host {
+  --paper: #E9ECE1;
+  --paper-raised: #F5F7EF;
+  --rule: #C7CCB8;
+  --ink: #16231B;
+  --ink-soft: #4B5749;
+  --ink-faint: #7B8574;
+  --accent: #A9782E;
+  --accent-strong: #7E5A20;
+  --accent-wash: rgba(169, 120, 46, 0.10);
+  --teal: #35594F;
+  --teal-wash: rgba(53, 89, 79, 0.08);
+  --danger: #8B3A2A;
+  --danger-wash: rgba(139, 58, 42, 0.08);
+
+  display: block;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+* { box-sizing: border-box; }
+
+h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; margin: 0; color: var(--ink); }
+
+.mono { font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace; }
+
+.painel-shell { min-height: 100vh; }
+
+.loading-state, .erro-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+
+  i.ti { font-size: 24px; color: var(--danger); }
+  p { color: var(--ink-soft); margin: 0; }
+}
+
+/* ============ Topbar ============ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--paper-raised);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+
+  a { color: var(--teal); cursor: pointer; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  i.ti { font-size: 12px; }
+}
+
+.titulo-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar h1 { font-size: 22px; font-weight: 500; }
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  border-radius: 3px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+
+  i.ti { font-size: 15px; }
+
+  &:hover { border-color: var(--accent); color: var(--ink); }
+}
+
+.btn-registrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+
+  i.ti { font-size: 15px; }
+}
+
+/* ============ Badge de papel ============ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  padding: 3px 9px 3px 7px;
+  border-radius: 20px;
+  width: fit-content;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+.badge-dono { background: var(--accent-wash); color: var(--accent-strong); .badge-dot { background: var(--accent); } }
+.badge-adm { background: var(--teal-wash); color: var(--teal); .badge-dot { background: var(--teal); } }
+.badge-membro { background: rgba(22, 35, 27, 0.06); color: var(--ink-soft); .badge-dot { background: var(--ink-soft); } }
+.badge-visualizador { background: rgba(22, 35, 27, 0.06); color: var(--ink-faint); .badge-dot { background: var(--ink-faint); } }
+
+/* ============ Content ============ */
+.content { padding: 28px; max-width: 960px; margin: 0 auto; }
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 640px) {
+  .kpis { grid-template-columns: 1fr; }
+}
+
+.kpi-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.kpi-valor {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 500;
+}
+.kpi-positivo { color: var(--teal); }
+.kpi-negativo { color: var(--danger); }
+
+/* ============ Tabela ============ */
+.tabela-secao h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.tabela-transacoes {
+  width: 100%;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+
+  th.mat-mdc-header-cell {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  td.mat-mdc-cell {
+    border-bottom: 1px dashed var(--rule);
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  tr.mat-mdc-row:last-child td { border-bottom: none; }
+}
+
+.descricao-cel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.descricao-nome { font-weight: 500; }
+.descricao-autor { font-size: 11.5px; color: var(--ink-faint); }
+
+.col-valor { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+.valor-positivo { color: var(--teal); }
+.valor-negativo { color: var(--danger); }

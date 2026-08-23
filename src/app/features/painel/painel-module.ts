@@ -7,9 +7,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PainelRoutingModule } from './painel-routing-module';
 import { PainelList } from './painel-list/painel-list';
 import { PainelCriar } from './painel-criar/painel-criar';
+import { PainelDetalhe } from './painel-detalhe/painel-detalhe';
 
 @NgModule({
-  declarations: [PainelList, PainelCriar],
+  declarations: [PainelList, PainelCriar, PainelDetalhe],
   imports: [CommonModule, ReactiveFormsModule, PainelRoutingModule, MatTableModule, MatProgressSpinnerModule],
 })
 export class PainelModule {}

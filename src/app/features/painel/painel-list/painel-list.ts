@@ -101,6 +101,10 @@ export class PainelList implements OnInit {
     this.router.navigateByUrl('/paineis/criar');
   }
 
+  abrirPainel(painel: ResponsePainelDto): void {
+    this.router.navigateByUrl(`/paineis/${painel.id}`);
+  }
+
   sair(): void {
     this.menuUsuarioAberto = false;
     this.authService.logout().then(() => this.router.navigateByUrl('/login'));

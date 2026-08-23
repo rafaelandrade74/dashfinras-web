@@ -1,0 +1,101 @@
+<div class="painel-shell">
+  @if (carregando()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (erro()) {
+    <div class="erro-state">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <p>{{ erro() }}</p>
+      <button type="button" class="btn-secundario" (click)="voltar()">Voltar para painéis</button>
+    </div>
+  } @else if (painel(); as p) {
+    <header class="topbar">
+      <div>
+        <nav class="breadcrumb mono">
+          <a (click)="voltar()">Painéis</a>
+          <i class="ti ti-chevron-right"></i>
+          <span>{{ p.nome }}</span>
+        </nav>
+        <div class="titulo-linha">
+          <h1>{{ p.nome }}</h1>
+          @if (papelDoUsuario; as papel) {
+            <span class="badge" [ngClass]="papel.classe">
+              <i class="badge-dot"></i>{{ papel.label }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="acoes">
+        @if (podeGerenciar) {
+          <button type="button" class="btn-secundario">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+            Renomear
+          </button>
+          <button type="button" class="btn-secundario">
+            <i class="ti ti-users" aria-hidden="true"></i>
+            Usuários
+          </button>
+        }
+        <button type="button" class="btn-registrar">
+          <i class="ti ti-plus" aria-hidden="true"></i>
+          Registrar
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="kpis">
+        <div class="kpi-card">
+          <span class="kpi-label">Entradas</span>
+          <span class="kpi-valor kpi-positivo">{{ totalEntradas | currency: 'BRL' }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Saídas</span>
+          <span class="kpi-valor kpi-negativo">{{ totalSaidas | currency: 'BRL' }}</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Saldo</span>
+          <span class="kpi-valor">{{ saldo | currency: 'BRL' }}</span>
+        </div>
+      </div>
+
+      <section class="tabela-secao">
+        <h2>Entradas e saídas</h2>
+
+        <table mat-table [dataSource]="transacoes" class="tabela-transacoes">
+          <ng-container matColumnDef="descricao">
+            <th mat-header-cell *matHeaderCellDef>Descrição</th>
+            <td mat-cell *matCellDef="let t">
+              <div class="descricao-cel">
+                <span class="descricao-nome">{{ t.descricao }}</span>
+                <span class="descricao-autor">{{ t.autor }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="categoria">
+            <th mat-header-cell *matHeaderCellDef>Categoria</th>
+            <td mat-cell *matCellDef="let t">{{ t.categoria }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="data">
+            <th mat-header-cell *matHeaderCellDef>Data</th>
+            <td mat-cell *matCellDef="let t">{{ t.data | date: 'dd/MM/yyyy' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valor">
+            <th mat-header-cell *matHeaderCellDef class="col-valor">Valor</th>
+            <td mat-cell *matCellDef="let t" class="col-valor" [class.valor-positivo]="t.valor > 0" [class.valor-negativo]="t.valor < 0">
+              {{ t.valor | currency: 'BRL' }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="['descricao', 'categoria', 'data', 'valor']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['descricao', 'categoria', 'data', 'valor']"></tr>
+        </table>
+      </section>
+    </main>
+  }
+</div>
