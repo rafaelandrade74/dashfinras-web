@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -13,8 +13,8 @@ import { Erro } from '../../../core/models/erro.model';
 })
 export class PainelCriar {
   readonly form: FormGroup;
-  salvando = false;
-  mensagemErro?: string;
+  readonly salvando = signal(false);
+  readonly mensagemErro = signal<string | undefined>(undefined);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -36,20 +36,20 @@ export class PainelCriar {
       return;
     }
 
-    this.salvando = true;
-    this.mensagemErro = undefined;
+    this.salvando.set(true);
+    this.mensagemErro.set(undefined);
 
     const { nome } = this.form.value;
 
     this.painelService.adicionarPainel({ nome }).pipe(
-      finalize(() => this.salvando = false)
+      finalize(() => this.salvando.set(false))
     ).subscribe({
       next: () => {
         this.router.navigateByUrl('/paineis');
       },
       error: (error) => {
         const erros = (error?.error ?? []) as Erro[];
-        this.mensagemErro = erros[0]?.descricao ?? 'Não foi possível criar o painel. Tente novamente.';
+        this.mensagemErro.set(erros[0]?.descricao ?? 'Não foi possível criar o painel. Tente novamente.');
       }
     });
   }

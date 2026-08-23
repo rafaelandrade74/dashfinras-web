@@ -31,18 +31,18 @@
 
         <div class="empty-hint">Você será o Dono deste painel automaticamente.</div>
 
-        @if (mensagemErro) {
+        @if (mensagemErro()) {
           <div class="api-error" role="alert">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-            <span>{{ mensagemErro }}</span>
+            <span>{{ mensagemErro() }}</span>
           </div>
         }
       </div>
 
       <div class="modal-foot">
         <button type="button" class="btn-secundario" (click)="cancelar()">Cancelar</button>
-        <button type="submit" class="btn-primario" [disabled]="salvando">
-          @if (salvando) {
+        <button type="submit" class="btn-primario" [disabled]="salvando()">
+          @if (salvando()) {
             <span class="spinner" aria-hidden="true"></span>
           }
           Criar painel
