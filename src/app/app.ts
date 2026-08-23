@@ -9,8 +9,4 @@ import { AuthService } from './core/services/auth.service';
 })
 export class App {
   constructor(protected readonly authService: AuthService) {}
-
-  sair(): void {
-    this.authService.logout();
-  }
 }

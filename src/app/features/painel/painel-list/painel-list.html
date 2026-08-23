@@ -1,26 +1,184 @@
-<div class="painel-list">
-  <h1>Meus painéis</h1>
+<div class="painel-shell">
+  <aside class="sidebar">
+    <div class="brand">DashFinRas <span class="dot">·</span></div>
 
-  @if (carregando) {
-    <mat-spinner diameter="32"></mat-spinner>
-  } @else {
-    <table mat-table [dataSource]="paineis" class="painel-table">
-      <ng-container matColumnDef="nome">
-        <th mat-header-cell *matHeaderCellDef>Nome</th>
-        <td mat-cell *matCellDef="let painel">{{ painel.nome }}</td>
-      </ng-container>
+    <nav class="nav">
+      @for (item of navItems; track item.label) {
+        <a class="nav-item" [class.active]="item.ativo">
+          <i class="ti" [ngClass]="item.icone"></i>
+          <span>{{ item.label }}</span>
+          @if (item.badge) {
+            <span class="nav-badge mono">{{ item.badge }}</span>
+          }
+        </a>
+      }
+    </nav>
 
-      <ng-container matColumnDef="usuarios">
-        <th mat-header-cell *matHeaderCellDef>Usuários</th>
-        <td mat-cell *matCellDef="let painel">{{ painel.usuarios?.length ?? 0 }}</td>
-      </ng-container>
+    <div class="sidebar-footer" [class.open]="menuUsuarioAberto" #sidebarFooter>
+      <button type="button" class="sidebar-footer-trigger" (click)="menuUsuarioAberto = !menuUsuarioAberto">
+        <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
+        <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
+        <i class="ti ti-chevron-up user-menu-chevron"></i>
+      </button>
 
-      <tr mat-header-row *matHeaderRowDef="colunas"></tr>
-      <tr mat-row *matRowDef="let row; columns: colunas;"></tr>
-    </table>
+      @if (menuUsuarioAberto) {
+        <div class="user-menu">
+          <button type="button" class="user-menu-item" (click)="sair()">
+            <i class="ti ti-logout-2"></i>
+            <span>Sair</span>
+          </button>
+        </div>
+      }
+    </div>
+  </aside>
 
-    @if (!paineis.length) {
-      <p class="painel-empty">Nenhum painel encontrado.</p>
-    }
-  }
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <span class="eyebrow mono">Painel financeiro</span>
+        <h1>Visão geral</h1>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="periodo-pill">
+          <button
+            type="button"
+            class="periodo-item"
+            [class.active]="periodo === '7d'"
+            (click)="selecionarPeriodo('7d')"
+          >
+            7d
+          </button>
+          <button
+            type="button"
+            class="periodo-item"
+            [class.active]="periodo === 'mes'"
+            (click)="selecionarPeriodo('mes')"
+          >
+            Mês
+          </button>
+          <button
+            type="button"
+            class="periodo-item"
+            [class.active]="periodo === 'ano'"
+            (click)="selecionarPeriodo('ano')"
+          >
+            Ano
+          </button>
+        </div>
+
+        <button type="button" class="btn-registrar">
+          <i class="ti ti-plus"></i>
+          Registrar
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      @if (carregando) {
+        <mat-spinner diameter="32"></mat-spinner>
+      } @else {
+        <section class="kpi-grid">
+          @for (kpi of kpis; track kpi.label) {
+            <article class="kpi-card">
+              <span class="kpi-label mono">{{ kpi.label }}</span>
+              <span class="kpi-valor mono tnum" [ngClass]="'kpi-' + kpi.cor">{{ kpi.valor }}</span>
+              <span class="kpi-delta">
+                <span [class.up]="kpi.deltaDirecao === 'up'" [class.down]="kpi.deltaDirecao === 'down'">
+                  {{ kpi.delta }}
+                </span>
+                vs. período anterior
+              </span>
+            </article>
+          }
+        </section>
+
+        <section class="painel-grid">
+          <article class="card chart-card">
+            <div class="card-head">
+              <h2>Receitas vs. despesas</h2>
+              <a href="javascript:void(0)" class="mono ver-detalhes">Ver detalhes →</a>
+            </div>
+
+            <div class="bars">
+              @for (barra of barras; track barra.mes) {
+                <div class="bar-group">
+                  <div class="bar-cols">
+                    <div
+                      class="bar bar-receita"
+                      [style.height.%]="(barra.receita / barraMaxima()) * 100"
+                    ></div>
+                    <div
+                      class="bar bar-despesa"
+                      [style.height.%]="(barra.despesa / barraMaxima()) * 100"
+                    ></div>
+                  </div>
+                  <span class="bar-mes mono">{{ barra.mes }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="bar-legenda">
+              <span class="legenda-item"><i class="dot dot-teal"></i> Receitas</span>
+              <span class="legenda-item"><i class="dot dot-danger"></i> Despesas</span>
+            </div>
+          </article>
+
+          <article class="card orcamentos-card">
+            <div class="card-head">
+              <h2>Orçamentos do mês</h2>
+            </div>
+
+            <ul class="orcamentos-list">
+              @for (orcamento of orcamentos; track orcamento.categoria) {
+                <li class="orcamento-item">
+                  <div class="orcamento-info">
+                    <span>{{ orcamento.categoria }}</span>
+                    <span class="mono tnum orcamento-valores">
+                      R$ {{ orcamento.gasto }} / R$ {{ orcamento.limite }}
+                    </span>
+                  </div>
+                  <div class="orcamento-barra">
+                    <div
+                      class="orcamento-progresso"
+                      [ngClass]="'status-' + orcamento.status"
+                      [style.width.%]="orcamentoPercentual(orcamento)"
+                    ></div>
+                  </div>
+                </li>
+              }
+            </ul>
+          </article>
+        </section>
+
+        <section class="card transacoes-card">
+          <div class="card-head">
+            <h2>Últimas transações</h2>
+            <a href="javascript:void(0)" class="mono ver-detalhes">Ver todas →</a>
+          </div>
+
+          <ul class="transacoes-list">
+            @for (transacao of transacoes; track transacao.descricao) {
+              <li class="transacao-item">
+                <div class="avatar" [ngClass]="'avatar-' + transacao.corAvatar">
+                  <i class="ti" [ngClass]="transacao.icone"></i>
+                </div>
+                <div class="transacao-info">
+                  <span class="transacao-descricao">{{ transacao.descricao }}</span>
+                  <span class="transacao-categoria mono">{{ transacao.categoria }} · {{ transacao.data }}</span>
+                </div>
+                <span
+                  class="transacao-valor mono tnum"
+                  [class.positivo]="transacao.tipo === 'entrada'"
+                  [class.negativo]="transacao.tipo === 'saida'"
+                >
+                  {{ transacao.valor }}
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
 </div>
