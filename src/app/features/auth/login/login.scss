@@ -184,6 +184,73 @@
   color: var(--ink-faint);
 }
 
+/* ── Password strength ── */
+.password-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.strength-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.strength-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--danger);
+  transition: width 0.15s ease, background 0.15s ease;
+}
+.strength-bar[data-forca='media'] .strength-bar-fill {
+  background: var(--accent);
+}
+.strength-bar[data-forca='forte'] .strength-bar-fill,
+.strength-bar[data-forca='excelente'] .strength-bar-fill {
+  background: var(--teal);
+}
+
+.strength-label {
+  font-size: 12px;
+  color: var(--danger);
+}
+.strength-label[data-forca='media'] {
+  color: var(--accent-strong);
+}
+.strength-label[data-forca='forte'],
+.strength-label[data-forca='excelente'] {
+  color: var(--teal);
+}
+
+.password-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  transition: color 0.12s;
+}
+.password-checklist li i {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.password-checklist li.met {
+  color: var(--teal);
+}
+.password-checklist li.met i {
+  color: var(--teal);
+}
+
 /* ── Links ── */
 .link {
   font-size: 13px;

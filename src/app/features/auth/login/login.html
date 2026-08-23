@@ -122,26 +122,45 @@
                 placeholder="••••••••"
                 aria-required="true"
               />
-              @if (signupForm.controls['senha'].invalid && signupForm.controls['senha'].touched) {
-                @if (signupForm.controls['senha'].errors?.['required']) {
-                  <div class="field-error" role="alert">
-                    <i class="ti ti-alert-circle" aria-hidden="true"></i> Senha é obrigatória
-                  </div>
-                } @else if (signupForm.controls['senha'].errors?.['minlength']) {
-                  <div class="field-error" role="alert">
-                    <i class="ti ti-alert-circle" aria-hidden="true"></i> A senha deve ter no mínimo 8 caracteres
-                  </div>
-                } @else if (signupForm.controls['senha'].errors?.['passwordComplexity']) {
-                  <div class="field-error" role="alert">
-                    <i class="ti ti-alert-circle" aria-hidden="true"></i>
-                    A senha deve conter letra maiúscula, minúscula, número e caractere especial
-                  </div>
-                }
-              } @else {
-                <span class="field-hint">
-                  Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial.
-                </span>
+              @if (signupForm.controls['senha'].errors?.['required'] && signupForm.controls['senha'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Senha é obrigatória
+                </div>
               }
+
+              <div class="password-strength">
+                <div class="strength-bar" [attr.data-forca]="senhaForca()">
+                  <div class="strength-bar-fill" [style.width.%]="senhaForcaPercentual()"></div>
+                </div>
+                @if (senhaForcaLabel[senhaForca()]) {
+                  <span class="strength-label" [attr.data-forca]="senhaForca()">
+                    Força da senha: {{ senhaForcaLabel[senhaForca()] }}
+                  </span>
+                }
+
+                <ul class="password-checklist">
+                  <li [class.met]="senhaCriterios().tamanho">
+                    <i class="ti" [class.ti-circle-check]="senhaCriterios().tamanho" [class.ti-circle]="!senhaCriterios().tamanho" aria-hidden="true"></i>
+                    Mínimo de 8 caracteres
+                  </li>
+                  <li [class.met]="senhaCriterios().maiuscula">
+                    <i class="ti" [class.ti-circle-check]="senhaCriterios().maiuscula" [class.ti-circle]="!senhaCriterios().maiuscula" aria-hidden="true"></i>
+                    Uma letra maiúscula
+                  </li>
+                  <li [class.met]="senhaCriterios().minuscula">
+                    <i class="ti" [class.ti-circle-check]="senhaCriterios().minuscula" [class.ti-circle]="!senhaCriterios().minuscula" aria-hidden="true"></i>
+                    Uma letra minúscula
+                  </li>
+                  <li [class.met]="senhaCriterios().numero">
+                    <i class="ti" [class.ti-circle-check]="senhaCriterios().numero" [class.ti-circle]="!senhaCriterios().numero" aria-hidden="true"></i>
+                    Um número
+                  </li>
+                  <li [class.met]="senhaCriterios().especial">
+                    <i class="ti" [class.ti-circle-check]="senhaCriterios().especial" [class.ti-circle]="!senhaCriterios().especial" aria-hidden="true"></i>
+                    Um caractere especial (!&#64;#$%...)
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <div class="field">

@@ -1,8 +1,15 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { passwordComplexityValidator } from '../../../core/validators/password-complexity.validator';
+import {
+  avaliarCriteriosSenha,
+  passwordComplexityValidator,
+  PasswordCriterios
+} from '../../../core/validators/password-complexity.validator';
+
+type ForcaSenha = 'vazia' | 'fraca' | 'media' | 'forte' | 'excelente';
 
 type Modo = 'login' | 'signup' | 'forgot' | 'forgot-sent';
 
@@ -21,6 +28,18 @@ export class Login {
   readonly loginForm: FormGroup;
   readonly signupForm: FormGroup;
   readonly forgotForm: FormGroup;
+
+  readonly senhaCriterios: () => PasswordCriterios;
+  readonly senhaForcaPercentual: () => number;
+  readonly senhaForca: () => ForcaSenha;
+
+  readonly senhaForcaLabel: Record<ForcaSenha, string> = {
+    vazia: '',
+    fraca: 'Fraca',
+    media: 'Média',
+    forte: 'Forte',
+    excelente: 'Excelente'
+  };
 
   constructor(
     private readonly fb: FormBuilder,
@@ -41,6 +60,36 @@ export class Login {
 
     this.forgotForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
+    });
+
+    const senhaValor = toSignal(this.signupForm.controls['senha'].valueChanges, {
+      initialValue: ''
+    });
+
+    this.senhaCriterios = computed(() => avaliarCriteriosSenha(senhaValor() ?? ''));
+
+    this.senhaForcaPercentual = computed(() => {
+      const criterios = Object.values(this.senhaCriterios());
+      const atendidos = criterios.filter(Boolean).length;
+      return Math.round((atendidos / criterios.length) * 100);
+    });
+
+    this.senhaForca = computed<ForcaSenha>(() => {
+      if (!senhaValor()) {
+        return 'vazia';
+      }
+
+      const percentual = this.senhaForcaPercentual();
+      if (percentual <= 20) {
+        return 'fraca';
+      }
+      if (percentual <= 60) {
+        return 'media';
+      }
+      if (percentual < 100) {
+        return 'forte';
+      }
+      return 'excelente';
     });
   }
 

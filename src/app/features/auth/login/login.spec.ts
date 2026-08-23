@@ -74,6 +74,28 @@ describe('Login', () => {
     expect(component.mensagemErro()).toBe('Não foi possível concluir o login. Tente novamente.');
   });
 
+  it('atualiza os critérios e a força da senha conforme o usuário digita', async () => {
+    expect(component.senhaForca()).toBe('vazia');
+
+    component.signupForm.controls['senha'].setValue('abc');
+    await fixture.whenStable();
+    expect(component.senhaCriterios().minuscula).toBe(true);
+    expect(component.senhaCriterios().tamanho).toBe(false);
+    expect(component.senhaForca()).toBe('fraca');
+
+    component.signupForm.controls['senha'].setValue('SenhaForte123!');
+    await fixture.whenStable();
+    expect(component.senhaCriterios()).toEqual({
+      tamanho: true,
+      minuscula: true,
+      maiuscula: true,
+      numero: true,
+      especial: true
+    });
+    expect(component.senhaForcaPercentual()).toBe(100);
+    expect(component.senhaForca()).toBe('excelente');
+  });
+
   it('muda para a tela de cadastro', () => {
     component.irPara('signup');
     expect(component.modo()).toBe('signup');
