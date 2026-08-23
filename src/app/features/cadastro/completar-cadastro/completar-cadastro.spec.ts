@@ -54,7 +54,7 @@ describe('CompletarCadastro', () => {
 
     expect(accountService.adicionarUsuario).toHaveBeenCalledWith({ firstName: 'Rafael', lastName: 'Andrade' });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/paineis');
-    expect(component.salvando).toBe(false);
+    expect(component.salvando()).toBe(false);
   });
 
   it('exibe mensagem de erro retornada pela API quando o cadastro falha', () => {
@@ -65,8 +65,8 @@ describe('CompletarCadastro', () => {
 
     component.salvar();
 
-    expect(component.salvando).toBe(false);
-    expect(component.mensagemErro).toBe('Usuário já possui cadastro.');
+    expect(component.salvando()).toBe(false);
+    expect(component.mensagemErro()).toBe('Usuário já possui cadastro.');
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
-import Keycloak from 'keycloak-js';
+import { AuthService } from '../../../core/services/auth.service';
 import { Landing } from './landing';
 
 describe('Landing', () => {
@@ -11,7 +11,7 @@ describe('Landing', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [Landing],
-      providers: [{ provide: Keycloak, useValue: {} }],
+      providers: [{ provide: AuthService, useValue: { isAuthenticated: false } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Landing);

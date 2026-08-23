@@ -75,7 +75,7 @@
     </header>
 
     <main class="content">
-      @if (carregando) {
+      @if (carregando()) {
         <mat-spinner diameter="32"></mat-spinner>
       } @else {
         <section class="kpi-grid">

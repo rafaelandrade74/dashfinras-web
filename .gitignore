@@ -42,3 +42,8 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local environment config (contains real Supabase credentials)
+# Copy environment.example.ts / environment.prod.example.ts to get started.
+/src/environments/environment.ts
+/src/environments/environment.prod.ts
