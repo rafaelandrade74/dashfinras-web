@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AccountService } from '../../../core/services/account.service';
@@ -12,8 +12,8 @@ import { Erro } from '../../../core/models/erro.model';
 })
 export class CompletarCadastro {
   readonly form: FormGroup;
-  salvando = false;
-  mensagemErro?: string;
+  readonly salvando = signal(false);
+  readonly mensagemErro = signal<string | undefined>(undefined);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -33,21 +33,23 @@ export class CompletarCadastro {
       return;
     }
 
-    this.salvando = true;
-    this.mensagemErro = undefined;
+    this.salvando.set(true);
+    this.mensagemErro.set(undefined);
 
     const { firstName, lastName } = this.form.value;
 
     this.accountService.adicionarUsuario({ firstName, lastName }).subscribe({
       next: () => {
-        this.salvando = false;
+        this.salvando.set(false);
         const redirectUrl = this.route.snapshot.queryParamMap.get('redirectUrl') ?? '/paineis';
         this.router.navigateByUrl(redirectUrl);
       },
       error: (error) => {
-        this.salvando = false;
+        this.salvando.set(false);
         const erros = (error?.error ?? []) as Erro[];
-        this.mensagemErro = erros[0]?.descricao ?? 'Não foi possível concluir o cadastro. Tente novamente.';
+        this.mensagemErro.set(
+          erros[0]?.descricao ?? 'Não foi possível concluir o cadastro. Tente novamente.'
+        );
       }
     });
   }
