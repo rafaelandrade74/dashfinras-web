@@ -80,3 +80,10 @@ edited/used when changing API or Supabase settings for a given target.
 ### Related repo
 
 The API (`api-dashfinras`, .NET) lives as a sibling directory and has its own CLAUDE.md.
+
+## Frontend patterns
+
+See [`docs/padroes-frontend.md`](docs/padroes-frontend.md) for recurring implementation patterns
+not obvious from a single component — most importantly: **this app runs without zone.js
+(zoneless)**, so any component state updated inside a Promise `.then()` or a manual `.subscribe()`
+callback must be a `signal()`, not a plain class field, or the view won't reliably re-render.
