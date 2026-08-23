@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
 import { Erro } from '../../../core/models/erro.model';
 
@@ -40,13 +41,13 @@ export class PainelCriar {
 
     const { nome } = this.form.value;
 
-    this.painelService.adicionarPainel({ nome }).subscribe({
+    this.painelService.adicionarPainel({ nome }).pipe(
+      finalize(() => this.salvando = false)
+    ).subscribe({
       next: () => {
-        this.salvando = false;
         this.router.navigateByUrl('/paineis');
       },
       error: (error) => {
-        this.salvando = false;
         const erros = (error?.error ?? []) as Erro[];
         this.mensagemErro = erros[0]?.descricao ?? 'Não foi possível criar o painel. Tente novamente.';
       }
