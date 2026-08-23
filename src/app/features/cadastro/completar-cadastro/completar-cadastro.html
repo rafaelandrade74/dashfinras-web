@@ -1,43 +1,92 @@
-<div class="cadastro-page">
-  <mat-card class="cadastro-card">
-    <mat-card-header>
-      <mat-card-title>Complete seu cadastro</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <p class="cadastro-subtitle">Antes de continuar, informe seu nome e sobrenome.</p>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="DashFinRas — início">
+      DashFinRas<span class="brand-dot"> ·</span>
+    </a>
+    <div class="topbar-user">
+      <i class="ti ti-lock" aria-hidden="true"></i>
+      <span>Autenticado via Keycloak</span>
+    </div>
+  </header>
 
-      <form [formGroup]="form" (ngSubmit)="salvar()" class="cadastro-form">
-        <mat-form-field appearance="outline" class="cadastro-field">
-          <mat-label>Nome</mat-label>
-          <input matInput formControlName="firstName" autocomplete="given-name" />
-          @if (form.controls['firstName'].invalid && form.controls['firstName'].touched) {
-            <mat-error>Nome é obrigatório</mat-error>
+  <main class="stage">
+    <div class="card" role="main">
+      <div class="card-body">
+        <div class="step-track" aria-label="Etapa 2 de 2">
+          <div class="step-dot done" title="Autenticação concluída"></div>
+          <div class="step-dot active" title="Perfil — etapa atual"></div>
+          <span class="step-label">Etapa 2 de 2</span>
+        </div>
+
+        <h1 class="heading">Complete seu cadastro</h1>
+        <p class="subhead">Antes de continuar, informe seu nome e sobrenome.</p>
+
+        <form class="form" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="firstName">Nome</label>
+              <input
+                class="field-input"
+                [class.error]="form.controls['firstName'].invalid && form.controls['firstName'].touched"
+                id="firstName"
+                type="text"
+                formControlName="firstName"
+                autocomplete="given-name"
+                placeholder="Rafael"
+                aria-required="true"
+              />
+              @if (form.controls['firstName'].invalid && form.controls['firstName'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Nome é obrigatório
+                </div>
+              }
+            </div>
+            <div class="field">
+              <label class="field-label" for="lastName">Sobrenome</label>
+              <input
+                class="field-input"
+                [class.error]="form.controls['lastName'].invalid && form.controls['lastName'].touched"
+                id="lastName"
+                type="text"
+                formControlName="lastName"
+                autocomplete="family-name"
+                placeholder="Andrade"
+                aria-required="true"
+              />
+              @if (form.controls['lastName'].invalid && form.controls['lastName'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Sobrenome é obrigatório
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (mensagemErro) {
+            <div class="api-error" role="alert">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+              <span>{{ mensagemErro }}</span>
+            </div>
           }
-        </mat-form-field>
 
-        <mat-form-field appearance="outline" class="cadastro-field">
-          <mat-label>Sobrenome</mat-label>
-          <input matInput formControlName="lastName" autocomplete="family-name" />
-          @if (form.controls['lastName'].invalid && form.controls['lastName'].touched) {
-            <mat-error>Sobrenome é obrigatório</mat-error>
-          }
-        </mat-form-field>
+          <button type="submit" class="btn-submit" [disabled]="salvando">
+            @if (salvando) {
+              <div class="spinner" aria-hidden="true"></div>
+              <span>Salvando…</span>
+            } @else {
+              <span>Concluir cadastro</span>
+            }
+          </button>
+        </form>
+      </div>
 
-        @if (mensagemErro) {
-          <p class="cadastro-erro">{{ mensagemErro }}</p>
-        }
+      <div class="card-foot">
+        <i class="ti ti-shield-check" aria-hidden="true"></i>
+        <span>Seus dados são usados apenas para personalizar a sua conta.</span>
+      </div>
+    </div>
+  </main>
 
-        <button mat-flat-button color="primary" type="submit" class="cadastro-button" [disabled]="salvando">
-          @if (salvando) {
-            <mat-spinner diameter="20"></mat-spinner>
-          } @else {
-            <ng-container>
-              <mat-icon>check</mat-icon>
-              Concluir cadastro
-            </ng-container>
-          }
-        </button>
-      </form>
-    </mat-card-content>
-  </mat-card>
+  <footer class="page-foot">
+    © 2026 DashFinRas
+  </footer>
 </div>

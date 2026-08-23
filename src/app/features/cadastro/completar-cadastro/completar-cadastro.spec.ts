@@ -1,13 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ActivatedRoute, Router, RouterModule, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { CompletarCadastro } from './completar-cadastro';
 import { AccountService } from '../../../core/services/account.service';
@@ -25,16 +18,7 @@ describe('CompletarCadastro', () => {
 
     await TestBed.configureTestingModule({
       declarations: [CompletarCadastro],
-      imports: [
-        ReactiveFormsModule,
-        NoopAnimationsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule
-      ],
+      imports: [ReactiveFormsModule, RouterModule.forRoot([])],
       providers: [
         { provide: AccountService, useValue: accountService },
         { provide: Router, useValue: router },
