@@ -1,5 +1,6 @@
 import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { PainelService } from '../../../core/services/painel.service';
+import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ResponsePainelDto } from '../../../core/models/painel.model';
 
@@ -100,11 +101,18 @@ export class PainelList implements OnInit {
 
   constructor(
     private readonly painelService: PainelService,
+    private readonly accountService: AccountService,
     protected readonly authService: AuthService,
   ) {}
 
   ngOnInit(): void {
     this.carregarPaineis();
+  }
+
+  get nomeUsuario(): string {
+    const usuario = this.accountService.usuarioAtual;
+    const nomeCadastrado = [usuario?.firstName, usuario?.lastName].filter(Boolean).join(' ').trim();
+    return nomeCadastrado || this.authService.nomeUsuario || 'Usuário';
   }
 
   carregarPaineis(): void {
