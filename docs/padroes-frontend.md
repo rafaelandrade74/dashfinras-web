@@ -25,6 +25,9 @@ avisou o Angular para re-renderizar. Isso já aconteceu (e foi corrigido) em tr�
 - [`Login`](../src/app/features/auth/login/login.ts) — login, cadastro e recuperação de senha
 - [`PainelList.sair()`](../src/app/features/painel/painel-list/painel-list.ts) — logout sem redirecionar
 - [`CompletarCadastro`](../src/app/features/cadastro/completar-cadastro/completar-cadastro.ts) — salvar perfil
+- [`PainelCriar`](../src/app/features/painel/painel-criar/painel-criar.ts) — criar painel (`salvando`/`mensagemErro`
+  ficaram presos até virarem `signal()`; `finalize()` sozinho não resolve — o estado mudava
+  certinho, só que o Angular nunca era avisado)
 
 ### A regra
 
@@ -135,7 +138,7 @@ mesmo problema da seção 1 (usar um campo comum atualizado num `.subscribe()` m
 
 ## 4. Convenção visual de erro/sucesso de formulário
 
-Toda tela de formulário (login, cadastro, completar-cadastro) usa a mesma estrutura de banner para
+Toda tela de formulário (login, cadastro, completar-cadastro, criar painel) usa a mesma estrutura de banner para
 mensagens vindas da API, com as classes `.api-error` / `.api-success` definidas localmente em cada
 `*.scss` (design system "paper/ink" — tokens documentados no próprio SCSS de cada componente):
 

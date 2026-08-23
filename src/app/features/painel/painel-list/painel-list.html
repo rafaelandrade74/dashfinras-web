@@ -35,149 +35,61 @@
   <div class="main">
     <header class="topbar">
       <div>
-        <span class="eyebrow mono">Painel financeiro</span>
-        <h1>Visão geral</h1>
+        <span class="eyebrow mono">Meus grupos</span>
+        <h1>Painéis</h1>
       </div>
 
-      <div class="topbar-actions">
-        <div class="periodo-pill">
-          <button
-            type="button"
-            class="periodo-item"
-            [class.active]="periodo === '7d'"
-            (click)="selecionarPeriodo('7d')"
-          >
-            7d
-          </button>
-          <button
-            type="button"
-            class="periodo-item"
-            [class.active]="periodo === 'mes'"
-            (click)="selecionarPeriodo('mes')"
-          >
-            Mês
-          </button>
-          <button
-            type="button"
-            class="periodo-item"
-            [class.active]="periodo === 'ano'"
-            (click)="selecionarPeriodo('ano')"
-          >
-            Ano
-          </button>
-        </div>
-
-        <button type="button" class="btn-registrar">
-          <i class="ti ti-plus"></i>
-          Registrar
-        </button>
-      </div>
+      <button type="button" class="btn-novo-painel" (click)="novoPainel()">
+        <i class="ti ti-plus"></i>
+        Novo painel
+      </button>
     </header>
 
     <main class="content">
       @if (carregando()) {
         <mat-spinner diameter="32"></mat-spinner>
+      } @else if (paineis().length === 0) {
+        <section class="empty-state">
+          <div class="empty-icon"><i class="ti ti-layout-grid-add"></i></div>
+          <h2>Você ainda não tem nenhum painel</h2>
+          <p>Crie um painel para começar a organizar suas entradas e saídas.</p>
+          <button type="button" class="btn-registrar" (click)="novoPainel()">
+            <i class="ti ti-plus"></i>
+            Criar painel
+          </button>
+        </section>
       } @else {
-        <section class="kpi-grid">
-          @for (kpi of kpis; track kpi.label) {
-            <article class="kpi-card">
-              <span class="kpi-label mono">{{ kpi.label }}</span>
-              <span class="kpi-valor mono tnum" [ngClass]="'kpi-' + kpi.cor">{{ kpi.valor }}</span>
-              <span class="kpi-delta">
-                <span [class.up]="kpi.deltaDirecao === 'up'" [class.down]="kpi.deltaDirecao === 'down'">
-                  {{ kpi.delta }}
+        <div class="grid">
+          @for (painel of paineis(); track painel.id) {
+            <article class="card">
+              <div class="card-top">
+                <div class="card-icon"><i class="ti ti-layout-dashboard"></i></div>
+                <span class="badge" [ngClass]="papelDoUsuario(painel).classe">
+                  <i class="badge-dot"></i>{{ papelDoUsuario(painel).label }}
                 </span>
-                vs. período anterior
-              </span>
+              </div>
+
+              <div class="card-name">{{ painel.nome }}</div>
+
+              <div class="card-bottom">
+                <div class="stack">
+                  @for (membro of membrosVisiveis(painel); track $index) {
+                    <div class="avatar" [ngClass]="'avatar-' + membro.cor">{{ membro.iniciais }}</div>
+                  }
+                  @if (membrosOcultos(painel) > 0) {
+                    <div class="avatar avatar-more">+{{ membrosOcultos(painel) }}</div>
+                  }
+                </div>
+                <i class="ti ti-chevron-right card-arrow"></i>
+              </div>
             </article>
           }
-        </section>
 
-        <section class="painel-grid">
-          <article class="card chart-card">
-            <div class="card-head">
-              <h2>Receitas vs. despesas</h2>
-              <a href="javascript:void(0)" class="mono ver-detalhes">Ver detalhes →</a>
-            </div>
-
-            <div class="bars">
-              @for (barra of barras; track barra.mes) {
-                <div class="bar-group">
-                  <div class="bar-cols">
-                    <div
-                      class="bar bar-receita"
-                      [style.height.%]="(barra.receita / barraMaxima()) * 100"
-                    ></div>
-                    <div
-                      class="bar bar-despesa"
-                      [style.height.%]="(barra.despesa / barraMaxima()) * 100"
-                    ></div>
-                  </div>
-                  <span class="bar-mes mono">{{ barra.mes }}</span>
-                </div>
-              }
-            </div>
-
-            <div class="bar-legenda">
-              <span class="legenda-item"><i class="dot dot-teal"></i> Receitas</span>
-              <span class="legenda-item"><i class="dot dot-danger"></i> Despesas</span>
-            </div>
+          <article class="card card-new" (click)="novoPainel()">
+            <i class="ti ti-plus"></i>
+            <span>Criar novo painel</span>
           </article>
-
-          <article class="card orcamentos-card">
-            <div class="card-head">
-              <h2>Orçamentos do mês</h2>
-            </div>
-
-            <ul class="orcamentos-list">
-              @for (orcamento of orcamentos; track orcamento.categoria) {
-                <li class="orcamento-item">
-                  <div class="orcamento-info">
-                    <span>{{ orcamento.categoria }}</span>
-                    <span class="mono tnum orcamento-valores">
-                      R$ {{ orcamento.gasto }} / R$ {{ orcamento.limite }}
-                    </span>
-                  </div>
-                  <div class="orcamento-barra">
-                    <div
-                      class="orcamento-progresso"
-                      [ngClass]="'status-' + orcamento.status"
-                      [style.width.%]="orcamentoPercentual(orcamento)"
-                    ></div>
-                  </div>
-                </li>
-              }
-            </ul>
-          </article>
-        </section>
-
-        <section class="card transacoes-card">
-          <div class="card-head">
-            <h2>Últimas transações</h2>
-            <a href="javascript:void(0)" class="mono ver-detalhes">Ver todas →</a>
-          </div>
-
-          <ul class="transacoes-list">
-            @for (transacao of transacoes; track transacao.descricao) {
-              <li class="transacao-item">
-                <div class="avatar" [ngClass]="'avatar-' + transacao.corAvatar">
-                  <i class="ti" [ngClass]="transacao.icone"></i>
-                </div>
-                <div class="transacao-info">
-                  <span class="transacao-descricao">{{ transacao.descricao }}</span>
-                  <span class="transacao-categoria mono">{{ transacao.categoria }} · {{ transacao.data }}</span>
-                </div>
-                <span
-                  class="transacao-valor mono tnum"
-                  [class.positivo]="transacao.tipo === 'entrada'"
-                  [class.negativo]="transacao.tipo === 'saida'"
-                >
-                  {{ transacao.valor }}
-                </span>
-              </li>
-            }
-          </ul>
-        </section>
+        </div>
       }
     </main>
   </div>
