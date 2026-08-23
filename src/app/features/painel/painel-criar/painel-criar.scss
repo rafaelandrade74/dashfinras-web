@@ -1,0 +1,216 @@
+:host {
+  --paper: #E9ECE1;
+  --paper-raised: #F5F7EF;
+  --rule: #C7CCB8;
+  --ink: #16231B;
+  --ink-soft: #4B5749;
+  --ink-faint: #7B8574;
+  --accent: #A9782E;
+  --accent-strong: #7E5A20;
+  --accent-wash: rgba(169, 120, 46, 0.10);
+  --teal: #35594F;
+  --teal-wash: rgba(53, 89, 79, 0.08);
+  --danger: #8B3A2A;
+  --danger-wash: rgba(139, 58, 42, 0.08);
+
+  display: block;
+  font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:host * {
+  box-sizing: border-box;
+}
+
+.backdrop {
+  min-height: 100vh;
+  background: rgba(22, 35, 27, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  width: 440px;
+  max-width: 100%;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 24px 60px -20px rgba(22, 35, 27, 0.5);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+}
+.modal-head h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+  margin: 0;
+  color: var(--ink);
+}
+.modal-sub {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+.btn-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.btn-close:hover {
+  background: var(--teal-wash);
+  color: var(--ink);
+}
+
+.modal-body {
+  padding: 18px 24px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+label {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+}
+.field input::placeholder {
+  color: var(--ink-faint);
+}
+.field input:focus {
+  border-color: var(--accent);
+}
+.field input.error {
+  border-color: var(--danger);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--danger);
+}
+.field-error i {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 4px 0 2px;
+}
+
+.api-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--danger-wash);
+  border: 1px solid rgba(139, 58, 42, 0.2);
+  border-left: 3px solid var(--danger);
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+.api-error i {
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 24px 22px;
+}
+
+.btn-secundario {
+  padding: 10px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-secundario:hover {
+  border-color: var(--ink-faint);
+}
+
+.btn-primario {
+  padding: 10px 18px;
+  border-radius: 3px;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primario:hover {
+  background: var(--ink-soft);
+}
+.btn-primario:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(233, 236, 225, 0.3);
+  border-top-color: var(--paper);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host * {
+    animation: none !important;
+  }
+}

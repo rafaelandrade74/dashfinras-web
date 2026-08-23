@@ -1,0 +1,53 @@
+<div class="backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h1>Novo painel</h1>
+        <div class="modal-sub">Um grupo para organizar entradas e saídas.</div>
+      </div>
+      <button type="button" class="btn-close" aria-label="Fechar" (click)="cancelar()">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+      <div class="modal-body">
+        <div class="field">
+          <label for="nome">Nome do painel</label>
+          <input
+            id="nome"
+            type="text"
+            formControlName="nome"
+            [class.error]="form.controls['nome'].invalid && form.controls['nome'].touched"
+            placeholder="Ex.: Casa, Empresa, Viagem…"
+            autocomplete="off"
+          />
+          @if (form.controls['nome'].invalid && form.controls['nome'].touched) {
+            <div class="field-error" role="alert">
+              <i class="ti ti-alert-circle" aria-hidden="true"></i> Nome do painel é obrigatório
+            </div>
+          }
+        </div>
+
+        <div class="empty-hint">Você será o Dono deste painel automaticamente.</div>
+
+        @if (mensagemErro) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ mensagemErro }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-secundario" (click)="cancelar()">Cancelar</button>
+        <button type="submit" class="btn-primario" [disabled]="salvando">
+          @if (salvando) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          Criar painel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -134,6 +134,10 @@ export class PainelList implements OnInit {
     this.periodo = periodo;
   }
 
+  novoPainel(): void {
+    this.router.navigateByUrl('/paineis/criar');
+  }
+
   sair(): void {
     this.menuUsuarioAberto = false;
     this.authService.logout().then(() => this.router.navigateByUrl('/login'));

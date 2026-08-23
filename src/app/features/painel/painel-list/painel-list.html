@@ -67,6 +67,11 @@
           </button>
         </div>
 
+        <button type="button" class="btn-novo-painel" (click)="novoPainel()">
+          <i class="ti ti-layout-grid-add"></i>
+          Novo painel
+        </button>
+
         <button type="button" class="btn-registrar">
           <i class="ti ti-plus"></i>
           Registrar
@@ -77,6 +82,16 @@
     <main class="content">
       @if (carregando()) {
         <mat-spinner diameter="32"></mat-spinner>
+      } @else if (paineis().length === 0) {
+        <section class="empty-state">
+          <div class="empty-icon"><i class="ti ti-layout-grid-add"></i></div>
+          <h2>Você ainda não tem nenhum painel</h2>
+          <p>Crie um painel para começar a organizar suas entradas e saídas.</p>
+          <button type="button" class="btn-registrar" (click)="novoPainel()">
+            <i class="ti ti-plus"></i>
+            Criar painel
+          </button>
+        </section>
       } @else {
         <section class="kpi-grid">
           @for (kpi of kpis; track kpi.label) {
