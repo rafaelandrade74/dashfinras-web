@@ -1,0 +1,271 @@
+:host {
+  --paper: #E9ECE1;
+  --paper-raised: #F5F7EF;
+  --ink: #16231B;
+  --ink-soft: #4B5749;
+  --ink-faint: #7B8574;
+  --rule: #C7CCB8;
+  --accent: #A9782E;
+  --accent-wash: rgba(169, 120, 46, 0.12);
+  --teal: #35594F;
+  --teal-wash: rgba(53, 89, 79, 0.09);
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+:host * {
+  box-sizing: border-box;
+}
+
+/* ── Stage ── */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Floating icons ── */
+.icon-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ficon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0;
+  animation: floatUp var(--dur, 4s) ease-in-out var(--delay, 0s) infinite;
+}
+
+.ficon i {
+  font-size: var(--sz, 20px);
+}
+
+.ficon.clr-teal i {
+  color: var(--teal);
+}
+.ficon.clr-accent i {
+  color: var(--accent);
+}
+.ficon.clr-ink-faint i {
+  color: var(--ink-faint);
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.88);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+  75% {
+    opacity: 0.85;
+    transform: translateY(-8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.94);
+  }
+}
+
+/* ── Center card ── */
+.card {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  padding: 0 24px;
+}
+
+.brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 36px;
+}
+.brand-dot {
+  color: var(--accent);
+}
+
+/* Coin animation */
+.coin-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 32px;
+}
+.coin-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+}
+.coin-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  animation: spin 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.coin-inner {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.coin-inner i {
+  font-size: 22px;
+  color: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Progress bar */
+.progress-wrap {
+  width: 180px;
+  height: 3px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: progressAnim 3.5s ease-in-out infinite;
+  transform-origin: left;
+}
+@keyframes progressAnim {
+  0% {
+    width: 0%;
+  }
+  60% {
+    width: 80%;
+  }
+  85% {
+    width: 90%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+/* Tip area */
+.tip-wrap {
+  position: relative;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tip {
+  position: absolute;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  max-width: 320px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  text-align: center;
+  margin: 0;
+}
+.tip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tip-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 10px;
+}
+
+/* ── Subtle grid lines (decorative) ── */
+.grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+}
+.grid-lines::before,
+.grid-lines::after {
+  content: '';
+  position: absolute;
+  background: var(--rule);
+}
+.grid-lines::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+}
+.grid-lines::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tip {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .ficon {
+    opacity: 0.4 !important;
+  }
+}

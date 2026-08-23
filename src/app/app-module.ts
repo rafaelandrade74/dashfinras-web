@@ -15,6 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
+import { CoreModule } from './core/core-module';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 import { environment } from '../environments/environment';
 
 const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondition>({
@@ -28,6 +30,7 @@ const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondit
   imports: [
     BrowserModule,
     AppRoutingModule,
+    CoreModule,
     MatToolbarModule,
     MatButtonModule,
     MatIconModule
@@ -35,7 +38,7 @@ const bearerTokenCondition = createInterceptorCondition<IncludeBearerTokenCondit
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([includeBearerTokenInterceptor])),
+    provideHttpClient(withInterceptors([loadingInterceptor, includeBearerTokenInterceptor])),
     { provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG, useValue: [bearerTokenCondition] },
     provideKeycloak({
       config: {
