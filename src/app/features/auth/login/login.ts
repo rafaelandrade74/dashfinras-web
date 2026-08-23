@@ -62,16 +62,22 @@ export class Login {
     this.mensagemErro = undefined;
     const { email, senha } = this.loginForm.value;
 
-    this.authService.login(email, senha).then((resultado) => {
-      this.carregando = false;
+    this.authService
+      .login(email, senha)
+      .then((resultado) => {
+        if (resultado.error) {
+          this.mensagemErro = resultado.error;
+          return;
+        }
 
-      if (resultado.error) {
-        this.mensagemErro = resultado.error;
-        return;
-      }
-
-      this.router.navigateByUrl(this.redirectUrl);
-    });
+        this.router.navigateByUrl(this.redirectUrl);
+      })
+      .catch(() => {
+        this.mensagemErro = 'Não foi possível concluir o login. Tente novamente.';
+      })
+      .finally(() => {
+        this.carregando = false;
+      });
   }
 
   criarConta(): void {
@@ -89,18 +95,24 @@ export class Login {
     this.carregando = true;
     this.mensagemErro = undefined;
 
-    this.authService.signUp(email, senha).then((resultado) => {
-      this.carregando = false;
+    this.authService
+      .signUp(email, senha)
+      .then((resultado) => {
+        if (resultado.error) {
+          this.mensagemErro = resultado.error;
+          return;
+        }
 
-      if (resultado.error) {
-        this.mensagemErro = resultado.error;
-        return;
-      }
-
-      this.router.navigate(['/completar-cadastro'], {
-        queryParams: { redirectUrl: this.redirectUrl }
+        this.router.navigate(['/completar-cadastro'], {
+          queryParams: { redirectUrl: this.redirectUrl }
+        });
+      })
+      .catch(() => {
+        this.mensagemErro = 'Não foi possível concluir o cadastro. Tente novamente.';
+      })
+      .finally(() => {
+        this.carregando = false;
       });
-    });
   }
 
   enviarRecuperacao(): void {
@@ -113,16 +125,22 @@ export class Login {
     this.mensagemErro = undefined;
     const { email } = this.forgotForm.value;
 
-    this.authService.resetPassword(email).then((resultado) => {
-      this.carregando = false;
+    this.authService
+      .resetPassword(email)
+      .then((resultado) => {
+        if (resultado.error) {
+          this.mensagemErro = resultado.error;
+          return;
+        }
 
-      if (resultado.error) {
-        this.mensagemErro = resultado.error;
-        return;
-      }
-
-      this.emailRecuperacao = email;
-      this.modo = 'forgot-sent';
-    });
+        this.emailRecuperacao = email;
+        this.modo = 'forgot-sent';
+      })
+      .catch(() => {
+        this.mensagemErro = 'Não foi possível enviar o link de recuperação. Tente novamente.';
+      })
+      .finally(() => {
+        this.carregando = false;
+      });
   }
 }

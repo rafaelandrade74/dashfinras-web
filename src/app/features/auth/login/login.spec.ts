@@ -63,6 +63,17 @@ describe('Login', () => {
     expect(component.mensagemErro).toBe('E-mail ou senha incorretos.');
   });
 
+  it('exibe mensagem de erro e para o carregamento quando authService.login rejeita', async () => {
+    authServiceMock.login.mockRejectedValue(new Error('falha de rede'));
+    component.loginForm.setValue({ email: 'rafael@exemplo.com', senha: 'senha123' });
+    component.entrar();
+    expect(component.carregando).toBe(true);
+    await fixture.whenStable();
+
+    expect(component.carregando).toBe(false);
+    expect(component.mensagemErro).toBe('Não foi possível concluir o login. Tente novamente.');
+  });
+
   it('muda para a tela de cadastro', () => {
     component.irPara('signup');
     expect(component.modo).toBe('signup');

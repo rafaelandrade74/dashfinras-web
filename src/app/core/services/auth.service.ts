@@ -29,39 +29,51 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<AuthResult> {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { error: this.traduzirErro(error.message) };
-    }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        return { error: this.traduzirErro(error.message) };
+      }
 
-    this.sessionSubject.next(data.session);
-    return {};
+      this.sessionSubject.next(data.session);
+      return {};
+    } catch {
+      return { error: this.erroDeConexao() };
+    }
   }
 
   async signUp(email: string, password: string): Promise<AuthResult> {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      return { error: this.traduzirErro(error.message) };
-    }
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        return { error: this.traduzirErro(error.message) };
+      }
 
-    if (!data.session) {
-      return { error: 'Não foi possível concluir o cadastro. Tente novamente.' };
-    }
+      if (!data.session) {
+        return { error: 'Não foi possível concluir o cadastro. Tente novamente.' };
+      }
 
-    this.sessionSubject.next(data.session);
-    return {};
+      this.sessionSubject.next(data.session);
+      return {};
+    } catch {
+      return { error: this.erroDeConexao() };
+    }
   }
 
   async resetPassword(email: string): Promise<AuthResult> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`
+      });
 
-    if (error) {
-      return { error: this.traduzirErro(error.message) };
+      if (error) {
+        return { error: this.traduzirErro(error.message) };
+      }
+
+      return {};
+    } catch {
+      return { error: this.erroDeConexao() };
     }
-
-    return {};
   }
 
   logout(): Promise<void> {
@@ -93,5 +105,9 @@ export class AuthService {
     }
 
     return mensagem;
+  }
+
+  private erroDeConexao(): string {
+    return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.';
   }
 }
