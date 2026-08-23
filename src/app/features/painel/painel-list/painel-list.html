@@ -14,17 +14,22 @@
       }
     </nav>
 
-    <button type="button" class="sidebar-footer" [matMenuTriggerFor]="menuUsuario">
-      <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
-      <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
-    </button>
-
-    <mat-menu #menuUsuario="matMenu">
-      <button mat-menu-item (click)="sair()">
-        <mat-icon>logout</mat-icon>
-        <span>Sair</span>
+    <div class="sidebar-footer" [class.open]="menuUsuarioAberto">
+      <button type="button" class="sidebar-footer-trigger" (click)="menuUsuarioAberto = !menuUsuarioAberto">
+        <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
+        <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
+        <i class="ti ti-chevron-up user-menu-chevron"></i>
       </button>
-    </mat-menu>
+
+      @if (menuUsuarioAberto) {
+        <div class="user-menu">
+          <button type="button" class="user-menu-item" (click)="sair()">
+            <i class="ti ti-logout-2"></i>
+            <span>Sair</span>
+          </button>
+        </div>
+      }
+    </div>
   </aside>
 
   <div class="main">

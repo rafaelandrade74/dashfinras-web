@@ -90,22 +90,69 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 }
 
 .sidebar-footer {
+  position: relative;
   margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+.sidebar-footer-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 8px 4px;
-  border-top: 1px solid var(--rule);
   width: 100%;
+  padding: 8px;
+  border-radius: 4px;
   background: none;
-  border-left: none;
-  border-right: none;
-  border-bottom: none;
+  border: none;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
 
-  &:hover .user-name { color: var(--accent-strong); }
+  &:hover { background: var(--teal-wash); }
+}
+
+.user-menu-chevron {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--ink-faint);
+  transform: rotate(180deg);
+  transition: transform 0.15s ease;
+}
+
+.sidebar-footer.open .user-menu-chevron { transform: rotate(0deg); }
+
+.user-menu {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px -12px rgba(22, 35, 27, 0.35);
+  overflow: hidden;
+  padding: 4px;
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: left;
+
+  i.ti { font-size: 15px; }
+
+  &:hover { background: var(--teal-wash); color: var(--danger); }
 }
 
 .avatar {

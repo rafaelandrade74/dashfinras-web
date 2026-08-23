@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
 import { PainelService } from '../../../core/services/painel.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ResponsePainelDto } from '../../../core/models/painel.model';
@@ -53,6 +53,7 @@ export class PainelList implements OnInit {
   carregando = false;
 
   periodo: '7d' | 'mes' | 'ano' = 'mes';
+  menuUsuarioAberto = false;
 
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painel', ativo: true },
@@ -98,6 +99,7 @@ export class PainelList implements OnInit {
   constructor(
     private readonly painelService: PainelService,
     protected readonly authService: AuthService,
+    private readonly elementRef: ElementRef<HTMLElement>,
   ) {}
 
   ngOnInit(): void {
@@ -122,7 +124,15 @@ export class PainelList implements OnInit {
   }
 
   sair(): void {
+    this.menuUsuarioAberto = false;
     this.authService.logout();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.menuUsuarioAberto && !this.elementRef.nativeElement.contains(event.target as Node)) {
+      this.menuUsuarioAberto = false;
+    }
   }
 
   barraMaxima(): number {
