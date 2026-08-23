@@ -121,6 +121,10 @@ export class PainelList implements OnInit {
     this.periodo = periodo;
   }
 
+  sair(): void {
+    this.authService.logout();
+  }
+
   barraMaxima(): number {
     return Math.max(...this.barras.flatMap((b) => [b.receita, b.despesa]));
   }

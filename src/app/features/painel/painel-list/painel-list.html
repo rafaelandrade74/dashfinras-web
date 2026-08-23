@@ -14,10 +14,17 @@
       }
     </nav>
 
-    <div class="sidebar-footer">
+    <button type="button" class="sidebar-footer" [matMenuTriggerFor]="menuUsuario">
       <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
       <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
-    </div>
+    </button>
+
+    <mat-menu #menuUsuario="matMenu">
+      <button mat-menu-item (click)="sair()">
+        <mat-icon>logout</mat-icon>
+        <span>Sair</span>
+      </button>
+    </mat-menu>
   </aside>
 
   <div class="main">

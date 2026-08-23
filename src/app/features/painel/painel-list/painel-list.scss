@@ -96,6 +96,16 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   gap: 10px;
   padding: 12px 8px 4px;
   border-top: 1px solid var(--rule);
+  width: 100%;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+
+  &:hover .user-name { color: var(--accent-strong); }
 }
 
 .avatar {

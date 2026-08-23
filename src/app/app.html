@@ -1,4 +1,4 @@
-<mat-toolbar color="primary" *ngIf="authService.isAuthenticated">
+<mat-toolbar color="primary" *ngIf="authService.isAuthenticated && !ocultarToolbar()">
   <span class="app-title">DashFinRas</span>
   <span class="app-spacer"></span>
   <span class="app-user">{{ authService.nomeUsuario }}</span>
