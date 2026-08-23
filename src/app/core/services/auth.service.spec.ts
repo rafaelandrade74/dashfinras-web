@@ -62,4 +62,44 @@ describe('AuthService', () => {
       error: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.'
     });
   });
+
+  it('retorna sucesso direto quando o Supabase já cria sessão no cadastro (confirmação de e-mail desligada)', async () => {
+    signUp.mockResolvedValue({
+      data: { session: { access_token: 'token', user: { id: '1' } }, user: { id: '1' } },
+      error: null
+    });
+
+    const resultado = await service.signUp('novo@exemplo.com', 'SenhaForte123!');
+
+    expect(resultado).toEqual({});
+    expect(service.isAuthenticated).toBe(true);
+  });
+
+  it('sinaliza que precisa confirmar e-mail quando o cadastro tem sucesso mas não retorna sessão', async () => {
+    signUp.mockResolvedValue({
+      data: {
+        session: null,
+        user: { id: '1', identities: [{ identity_id: 'abc' }] }
+      },
+      error: null
+    });
+
+    const resultado = await service.signUp('novo@exemplo.com', 'SenhaForte123!');
+
+    expect(resultado).toEqual({ precisaConfirmarEmail: true });
+    expect(service.isAuthenticated).toBe(false);
+  });
+
+  it('traduz para "e-mail já cadastrado" quando o Supabase retorna usuário sem identidades', async () => {
+    signUp.mockResolvedValue({
+      data: { session: null, user: { id: '1', identities: [] } },
+      error: null
+    });
+
+    const resultado = await service.signUp('jacadastrado@exemplo.com', 'SenhaForte123!');
+
+    expect(resultado).toEqual({
+      error: 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.'
+    });
+  });
 });

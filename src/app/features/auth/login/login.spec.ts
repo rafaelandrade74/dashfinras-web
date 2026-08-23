@@ -125,6 +125,37 @@ describe('Login', () => {
     expect(authServiceMock.signUp).not.toHaveBeenCalled();
   });
 
+  it('navega para completar-cadastro quando o signUp já retorna sessão (login automático)', async () => {
+    const router = TestBed.inject(Router);
+    component.signupForm.setValue({
+      email: 'novo@exemplo.com',
+      senha: 'SenhaForte123!',
+      confirmarSenha: 'SenhaForte123!'
+    });
+    component.criarConta();
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/completar-cadastro'], {
+      queryParams: { redirectUrl: '/paineis' }
+    });
+  });
+
+  it('mostra a tela de confirmação de e-mail quando o signUp exige confirmação', async () => {
+    authServiceMock.signUp.mockResolvedValue({ precisaConfirmarEmail: true });
+    const router = TestBed.inject(Router);
+    component.signupForm.setValue({
+      email: 'novo@exemplo.com',
+      senha: 'SenhaForte123!',
+      confirmarSenha: 'SenhaForte123!'
+    });
+    component.criarConta();
+    await fixture.whenStable();
+
+    expect(component.modo()).toBe('signup-sent');
+    expect(component.emailCadastro()).toBe('novo@exemplo.com');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('chama authService.resetPassword e avança para a tela de confirmação', async () => {
     component.irPara('forgot');
     component.forgotForm.setValue({ email: 'rafael@exemplo.com' });

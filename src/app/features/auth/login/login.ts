@@ -11,7 +11,7 @@ import {
 
 type ForcaSenha = 'vazia' | 'fraca' | 'media' | 'forte' | 'excelente';
 
-type Modo = 'login' | 'signup' | 'forgot' | 'forgot-sent';
+type Modo = 'login' | 'signup' | 'signup-sent' | 'forgot' | 'forgot-sent';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +24,7 @@ export class Login {
   readonly carregando = signal(false);
   readonly mensagemErro = signal<string | undefined>(undefined);
   readonly emailRecuperacao = signal('');
+  readonly emailCadastro = signal('');
 
   readonly loginForm: FormGroup;
   readonly signupForm: FormGroup;
@@ -150,6 +151,12 @@ export class Login {
       .then((resultado) => {
         if (resultado.error) {
           this.mensagemErro.set(resultado.error);
+          return;
+        }
+
+        if (resultado.precisaConfirmarEmail) {
+          this.emailCadastro.set(email);
+          this.modo.set('signup-sent');
           return;
         }
 

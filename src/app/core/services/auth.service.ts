@@ -7,6 +7,7 @@ const supabase = createClient(environment.supabase.url, environment.supabase.ano
 
 export interface AuthResult {
   error?: string;
+  precisaConfirmarEmail?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -49,12 +50,22 @@ export class AuthService {
         return { error: this.traduzirErro(error.message) };
       }
 
-      if (!data.session) {
-        return { error: 'Não foi possível concluir o cadastro. Tente novamente.' };
+      if (data.session) {
+        this.sessionSubject.next(data.session);
+        return {};
       }
 
-      this.sessionSubject.next(data.session);
-      return {};
+      // Supabase's anti-enumeration behavior: signing up with an already-registered e-mail
+      // returns 200 with a user that has no identities, instead of an error.
+      const jaCadastrado = data.user && data.user.identities?.length === 0;
+      if (jaCadastrado) {
+        return {
+          error: 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.'
+        };
+      }
+
+      // No session and a real new user: e-mail confirmation is required before login.
+      return { precisaConfirmarEmail: true };
     } catch {
       return { error: this.erroDeConexao() };
     }

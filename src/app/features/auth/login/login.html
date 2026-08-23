@@ -206,6 +206,26 @@
         </div>
       }
 
+      @if (modo() === 'signup-sent') {
+        <div class="card-body">
+          <p class="eyebrow">Nova conta</p>
+          <h1 class="heading">Confirme seu e-mail</h1>
+          <p class="subhead">
+            Enviamos um link de confirmação para {{ emailCadastro() }}. Clique nele para ativar
+            sua conta e depois volte aqui para entrar.
+          </p>
+
+          <div class="api-success" role="status">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>
+            <span>Cadastro recebido. Falta só confirmar o e-mail.</span>
+          </div>
+
+          <button type="button" class="btn-ghost" style="margin-top: 20px" (click)="irPara('login')">
+            Voltar ao login
+          </button>
+        </div>
+      }
+
       @if (modo() === 'forgot') {
         <div class="card-body">
           <p class="eyebrow">Recuperação de acesso</p>
