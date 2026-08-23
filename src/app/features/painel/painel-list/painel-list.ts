@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { PainelService } from '../../../core/services/painel.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ResponsePainelDto } from '../../../core/models/painel.model';
@@ -49,6 +49,8 @@ interface NavItem {
   templateUrl: './painel-list.html',
 })
 export class PainelList implements OnInit {
+  @ViewChild('sidebarFooter') private readonly sidebarFooter?: ElementRef<HTMLElement>;
+
   paineis: ResponsePainelDto[] = [];
   carregando = false;
 
@@ -99,7 +101,6 @@ export class PainelList implements OnInit {
   constructor(
     private readonly painelService: PainelService,
     protected readonly authService: AuthService,
-    private readonly elementRef: ElementRef<HTMLElement>,
   ) {}
 
   ngOnInit(): void {
@@ -130,7 +131,7 @@ export class PainelList implements OnInit {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (this.menuUsuarioAberto && !this.elementRef.nativeElement.contains(event.target as Node)) {
+    if (this.menuUsuarioAberto && !this.sidebarFooter?.nativeElement.contains(event.target as Node)) {
       this.menuUsuarioAberto = false;
     }
   }

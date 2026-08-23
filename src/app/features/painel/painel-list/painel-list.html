@@ -14,7 +14,7 @@
       }
     </nav>
 
-    <div class="sidebar-footer" [class.open]="menuUsuarioAberto">
+    <div class="sidebar-footer" [class.open]="menuUsuarioAberto" #sidebarFooter>
       <button type="button" class="sidebar-footer-trigger" (click)="menuUsuarioAberto = !menuUsuarioAberto">
         <div class="avatar avatar-teal">{{ (authService.nomeUsuario ?? 'U').charAt(0) }}</div>
         <span class="user-name">{{ authService.nomeUsuario ?? 'Usuário' }}</span>
