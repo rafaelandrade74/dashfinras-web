@@ -44,8 +44,8 @@ describe('PainelList', () => {
   });
 
   it('should populate an empty panel list once the request resolves', () => {
-    expect(component.carregando).toBe(false);
-    expect(component.paineis).toEqual([]);
+    expect(component.carregando()).toBe(false);
+    expect(component.paineis()).toEqual([]);
   });
 
   it('faz logout e redireciona para /login ao sair', async () => {

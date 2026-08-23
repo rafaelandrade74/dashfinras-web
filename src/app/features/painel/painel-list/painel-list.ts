@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { PainelService } from '../../../core/services/painel.service';
 import { AccountService } from '../../../core/services/account.service';
@@ -53,8 +53,8 @@ interface NavItem {
 export class PainelList implements OnInit {
   @ViewChild('sidebarFooter') private readonly sidebarFooter?: ElementRef<HTMLElement>;
 
-  paineis: ResponsePainelDto[] = [];
-  carregando = false;
+  readonly paineis = signal<ResponsePainelDto[]>([]);
+  readonly carregando = signal(false);
 
   periodo: '7d' | 'mes' | 'ano' = 'mes';
   menuUsuarioAberto = false;
@@ -118,14 +118,14 @@ export class PainelList implements OnInit {
   }
 
   carregarPaineis(): void {
-    this.carregando = true;
+    this.carregando.set(true);
     this.painelService.obterPaineisPaginado(1, 10).subscribe({
       next: (response) => {
-        this.paineis = response.paineis ?? [];
-        this.carregando = false;
+        this.paineis.set(response.paineis ?? []);
+        this.carregando.set(false);
       },
       error: () => {
-        this.carregando = false;
+        this.carregando.set(false);
       }
     });
   }
