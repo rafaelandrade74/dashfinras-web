@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { passwordComplexityValidator } from '../../../core/validators/password-complexity.validator';
 
 type Modo = 'login' | 'signup' | 'forgot' | 'forgot-sent';
 
@@ -34,7 +35,7 @@ export class Login {
 
     this.signupForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      senha: ['', [Validators.required, Validators.minLength(8)]],
+      senha: ['', [Validators.required, Validators.minLength(8), passwordComplexityValidator]],
       confirmarSenha: ['', Validators.required]
     });
 

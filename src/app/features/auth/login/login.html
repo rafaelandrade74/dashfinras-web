@@ -123,11 +123,24 @@
                 aria-required="true"
               />
               @if (signupForm.controls['senha'].invalid && signupForm.controls['senha'].touched) {
-                <div class="field-error" role="alert">
-                  <i class="ti ti-alert-circle" aria-hidden="true"></i> A senha deve ter no mínimo 8 caracteres
-                </div>
+                @if (signupForm.controls['senha'].errors?.['required']) {
+                  <div class="field-error" role="alert">
+                    <i class="ti ti-alert-circle" aria-hidden="true"></i> Senha é obrigatória
+                  </div>
+                } @else if (signupForm.controls['senha'].errors?.['minlength']) {
+                  <div class="field-error" role="alert">
+                    <i class="ti ti-alert-circle" aria-hidden="true"></i> A senha deve ter no mínimo 8 caracteres
+                  </div>
+                } @else if (signupForm.controls['senha'].errors?.['passwordComplexity']) {
+                  <div class="field-error" role="alert">
+                    <i class="ti ti-alert-circle" aria-hidden="true"></i>
+                    A senha deve conter letra maiúscula, minúscula, número e caractere especial
+                  </div>
+                }
               } @else {
-                <span class="field-hint">Mínimo de 8 caracteres.</span>
+                <span class="field-hint">
+                  Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial.
+                </span>
               }
             </div>
 

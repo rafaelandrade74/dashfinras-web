@@ -82,12 +82,24 @@ describe('Login', () => {
   it('mostra erro quando as senhas de cadastro não coincidem', () => {
     component.signupForm.setValue({
       email: 'novo@exemplo.com',
-      senha: 'senha1234',
-      confirmarSenha: 'outrasenha'
+      senha: 'SenhaForte123!',
+      confirmarSenha: 'OutraSenhaForte123!'
     });
     component.criarConta();
 
     expect(component.mensagemErro()).toBe('As senhas informadas não coincidem.');
+    expect(authServiceMock.signUp).not.toHaveBeenCalled();
+  });
+
+  it('impede o cadastro quando a senha não atende aos critérios de complexidade', () => {
+    component.signupForm.setValue({
+      email: 'novo@exemplo.com',
+      senha: 'senhasimples',
+      confirmarSenha: 'senhasimples'
+    });
+    component.criarConta();
+
+    expect(component.signupForm.controls['senha'].errors?.['passwordComplexity']).toBe(true);
     expect(authServiceMock.signUp).not.toHaveBeenCalled();
   });
 
