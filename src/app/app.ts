@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AuthService } from './core/services/auth.service';
+import { LoadingService } from './core/services/loading.service';
 
 @Component({
   selector: 'app-root',
@@ -8,5 +9,8 @@ import { AuthService } from './core/services/auth.service';
   templateUrl: './app.html',
 })
 export class App {
-  constructor(protected readonly authService: AuthService) {}
+  constructor(
+    protected readonly authService: AuthService,
+    protected readonly loadingService: LoadingService,
+  ) {}
 }

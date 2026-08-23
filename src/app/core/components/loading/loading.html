@@ -1,0 +1,38 @@
+<div class="stage" role="status" aria-label="Carregando DashFinRas">
+  <div class="grid-lines" aria-hidden="true"></div>
+
+  <div class="icon-field" aria-hidden="true">
+    @for (item of icones; track item.icone) {
+      <div
+        class="ficon"
+        [class]="'clr-' + item.cor"
+        [style.left]="item.left"
+        [style.top]="item.top"
+        [style.--sz]="item.tamanho"
+        [style.--dur]="item.duracao"
+        [style.--delay]="item.atraso"
+      >
+        <i class="ti" [ngClass]="item.icone"></i>
+      </div>
+    }
+  </div>
+
+  <div class="card">
+    <div class="brand">DashFinRas<span class="brand-dot"> ·</span></div>
+
+    <div class="coin-wrap" aria-hidden="true">
+      <div class="coin-ring"></div>
+      <div class="coin-fill"></div>
+      <div class="coin-inner"><i class="ti ti-coin"></i></div>
+    </div>
+
+    <div class="progress-wrap" aria-hidden="true">
+      <div class="progress-fill"></div>
+    </div>
+
+    <div class="tip-eyebrow">Dica financeira</div>
+    <div class="tip-wrap" aria-live="polite">
+      <p class="tip" [class.visible]="dicaVisivel">{{ dicaAtual }}</p>
+    </div>
+  </div>
+</div>
