@@ -1,4 +1,5 @@
 import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { PainelService } from '../../../core/services/painel.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -103,6 +104,7 @@ export class PainelList implements OnInit {
     private readonly painelService: PainelService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -134,7 +136,7 @@ export class PainelList implements OnInit {
 
   sair(): void {
     this.menuUsuarioAberto = false;
-    this.authService.logout();
+    this.authService.logout().then(() => this.router.navigateByUrl('/login'));
   }
 
   @HostListener('document:click', ['$event'])
