@@ -10,7 +10,7 @@ import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { CoreModule } from './core/core-module';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
-import { bearerTokenInterceptor } from './core/interceptors/bearer-token.interceptor';
+import { credentialsInterceptor } from './core/interceptors/credentials.interceptor';
 
 @NgModule({
   declarations: [
@@ -27,7 +27,7 @@ import { bearerTokenInterceptor } from './core/interceptors/bearer-token.interce
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([loadingInterceptor, bearerTokenInterceptor]))
+    provideHttpClient(withInterceptors([loadingInterceptor, credentialsInterceptor]))
   ],
   bootstrap: [App]
 })

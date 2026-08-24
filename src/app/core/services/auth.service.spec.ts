@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { AuthService } from './auth.service';
+import { AccountService } from './account.service';
 
 const signInWithPassword = vi.fn();
 const signUp = vi.fn();
@@ -23,6 +25,7 @@ vi.mock('@supabase/supabase-js', () => ({
 
 describe('AuthService', () => {
   let service: AuthService;
+  let accountServiceMock: { login: ReturnType<typeof vi.fn>; logout: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     signInWithPassword.mockReset();
@@ -30,7 +33,14 @@ describe('AuthService', () => {
     resetPasswordForEmail.mockReset();
     onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: () => {} } } });
 
-    TestBed.configureTestingModule({});
+    accountServiceMock = {
+      login: vi.fn().mockReturnValue(of(undefined)),
+      logout: vi.fn().mockReturnValue(of(undefined))
+    };
+
+    TestBed.configureTestingModule({
+      providers: [{ provide: AccountService, useValue: accountServiceMock }]
+    });
     service = TestBed.inject(AuthService);
   });
 
@@ -100,6 +110,20 @@ describe('AuthService', () => {
 
     expect(resultado).toEqual({
       error: 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.'
+    });
+  });
+
+  it('troca a sessão do Supabase por cookies httpOnly via AccountService ao logar', async () => {
+    signInWithPassword.mockResolvedValue({
+      data: { session: { access_token: 'access-123', refresh_token: 'refresh-123', user: { id: '1' } } },
+      error: null
+    });
+
+    await service.login('rafael@exemplo.com', 'senha123');
+
+    expect(accountServiceMock.login).toHaveBeenCalledWith({
+      accessToken: 'access-123',
+      refreshToken: 'refresh-123'
     });
   });
 

@@ -1,9 +1,32 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { createClient, Session } from '@supabase/supabase-js';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AccountService } from './account.service';
 
-const supabase = createClient(environment.supabase.url, environment.supabase.anonKey);
+// Storage em memória: o SDK do Supabase persiste a sessão aqui em vez de localStorage, para que o
+// access_token/refresh_token não fiquem expostos a XSS. A sessão só dura enquanto o AuthService
+// vive na memória do JS (perdida em um reload de página) — a partir do login, quem sustenta a
+// sessão entre requisições é o cookie httpOnly setado pela API (ver AccountService.login).
+class MemoryStorage {
+  private readonly store = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+}
+
+const supabase = createClient(environment.supabase.url, environment.supabase.anonKey, {
+  auth: { storage: new MemoryStorage() }
+});
 
 export interface AuthResult {
   error?: string;
@@ -12,6 +35,7 @@ export interface AuthResult {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly accountService = inject(AccountService);
   private readonly sessionSubject = new BehaviorSubject<Session | null>(null);
   private readonly readyPromise: Promise<void>;
 
@@ -34,6 +58,10 @@ export class AuthService {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         return { error: this.traduzirErro(error.message) };
+      }
+
+      if (data.session) {
+        await this.trocarSessaoPorCookies(data.session);
       }
 
       this.sessionSubject.next(data.session);
@@ -59,6 +87,7 @@ export class AuthService {
       }
 
       if (data.session) {
+        await this.trocarSessaoPorCookies(data.session);
         this.sessionSubject.next(data.session);
         return {};
       }
@@ -95,23 +124,31 @@ export class AuthService {
     }
   }
 
-  logout(): Promise<void> {
-    return supabase.auth.signOut().then(() => {
+  async logout(): Promise<void> {
+    try {
+      await firstValueFrom(this.accountService.logout());
+    } finally {
+      await supabase.auth.signOut();
       this.sessionSubject.next(null);
-    });
+    }
   }
 
   get isAuthenticated(): boolean {
     return this.sessionSubject.value !== null;
   }
 
-  get token(): string | undefined {
-    return this.sessionSubject.value?.access_token;
-  }
-
   get nomeUsuario(): string | undefined {
     const user = this.sessionSubject.value?.user;
     return (user?.user_metadata?.['name'] as string) ?? user?.email;
+  }
+
+  private trocarSessaoPorCookies(session: Session): Promise<void> {
+    return firstValueFrom(
+      this.accountService.login({
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token
+      })
+    );
   }
 
   private traduzirErro(mensagem: string): string {
