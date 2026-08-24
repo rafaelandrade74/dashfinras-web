@@ -4,7 +4,7 @@
 
     <nav class="nav">
       @for (item of navItems; track item.label) {
-        <a class="nav-item" [class.active]="item.ativo">
+        <a class="nav-item" [class.active]="item.ativo" (click)="irPara(item)">
           <i class="ti" [ngClass]="item.icone"></i>
           <span>{{ item.label }}</span>
           @if (item.badge) {
@@ -61,7 +61,7 @@
       } @else {
         <div class="grid">
           @for (painel of paineis(); track painel.id) {
-            <article class="card">
+            <article class="card" (click)="abrirPainel(painel)">
               <div class="card-top">
                 <div class="card-icon"><i class="ti ti-layout-dashboard"></i></div>
                 <span class="badge" [ngClass]="papelDoUsuario(painel).classe">

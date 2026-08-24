@@ -204,19 +204,21 @@
 }
 .tip {
   position: absolute;
+  left: 50%;
+  width: 320px;
+  max-width: 100%;
   font-size: 14px;
   color: var(--ink-soft);
   line-height: 1.55;
-  max-width: 320px;
   opacity: 0;
-  transform: translateY(6px);
+  transform: translate(-50%, 6px);
   transition: opacity 0.5s ease, transform 0.5s ease;
   text-align: center;
   margin: 0;
 }
 .tip.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 .tip-eyebrow {
