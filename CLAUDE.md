@@ -9,6 +9,17 @@ NgModules (no standalone components). Consumes the `api-dashfinras` (.NET) API. 
 (Supabase Auth, email/password) is brokered by this app's own Node server (BFF) — see "Auth
 wiring" below. Commit messages and UI strings are in Portuguese.
 
+## Branching
+
+`develop` is the integration branch — **all PRs target `develop`, never `main`** (`main` still
+exists as GitHub's default branch/what gets deployed, but day-to-day work doesn't land there
+directly). Branch new work off latest `develop`, not `main`:
+
+```bash
+git checkout develop && git pull
+git checkout -b feature/<issue-number>-<slug>   # or fix/<issue-number>-<slug>
+```
+
 ## Commands
 
 ```bash
