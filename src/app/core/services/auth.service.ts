@@ -1,28 +1,38 @@
 import { Injectable } from '@angular/core';
-import { createClient, Session } from '@supabase/supabase-js';
-import { BehaviorSubject } from 'rxjs';
-import { environment } from '../../../environments/environment';
-
-const supabase = createClient(environment.supabase.url, environment.supabase.anonKey);
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 
 export interface AuthResult {
   error?: string;
   precisaConfirmarEmail?: boolean;
 }
 
+interface SessaoUsuario {
+  email: string;
+  nome?: string;
+}
+
+interface SessionResponseDto {
+  authenticated: boolean;
+  email?: string;
+  nome?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly sessionSubject = new BehaviorSubject<Session | null>(null);
+  private readonly sessionSubject = new BehaviorSubject<SessaoUsuario | undefined>(undefined);
   private readonly readyPromise: Promise<void>;
 
-  constructor() {
-    this.readyPromise = supabase.auth.getSession().then(({ data }) => {
-      this.sessionSubject.next(data.session);
-    });
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      this.sessionSubject.next(session);
-    });
+  constructor(private readonly http: HttpClient) {
+    this.readyPromise = firstValueFrom(this.http.get<SessionResponseDto>('/api/auth/session'))
+      .then((session) => {
+        this.sessionSubject.next(
+          session.authenticated ? { email: session.email!, nome: session.nome } : undefined,
+        );
+      })
+      .catch(() => {
+        this.sessionSubject.next(undefined);
+      });
   }
 
   waitUntilReady(): Promise<void> {
@@ -31,99 +41,77 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<AuthResult> {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        return { error: this.traduzirErro(error.message) };
-      }
-
-      this.sessionSubject.next(data.session);
+      await firstValueFrom(this.http.post('/api/auth/login', { email, password }));
+      this.sessionSubject.next({ email });
       return {};
-    } catch {
-      return { error: this.erroDeConexao() };
+    } catch (erro) {
+      return { error: this.traduzirErro(erro) };
     }
   }
 
   async signUp(email: string, password: string, redirectUrl?: string): Promise<AuthResult> {
     try {
-      const emailRedirectTo = redirectUrl
-        ? `${window.location.origin}/login?redirectUrl=${encodeURIComponent(redirectUrl)}`
-        : `${window.location.origin}/login`;
+      const resposta = await firstValueFrom(
+        this.http.post<{ ok: true; requiresEmailConfirmation: boolean }>('/api/auth/signup', {
+          email,
+          password,
+          redirectUrl,
+        }),
+      );
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo }
-      });
-      if (error) {
-        return { error: this.traduzirErro(error.message) };
+      if (resposta.requiresEmailConfirmation) {
+        return { precisaConfirmarEmail: true };
       }
 
-      if (data.session) {
-        this.sessionSubject.next(data.session);
-        return {};
-      }
-
-      // Supabase's anti-enumeration behavior: signing up with an already-registered e-mail
-      // returns 200 with a user that has no identities, instead of an error.
-      const jaCadastrado = data.user && data.user.identities?.length === 0;
-      if (jaCadastrado) {
-        return {
-          error: 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.'
-        };
-      }
-
-      // No session and a real new user: e-mail confirmation is required before login.
-      return { precisaConfirmarEmail: true };
-    } catch {
-      return { error: this.erroDeConexao() };
+      this.sessionSubject.next({ email });
+      return {};
+    } catch (erro) {
+      return { error: this.traduzirErro(erro) };
     }
   }
 
   async resetPassword(email: string): Promise<AuthResult> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`
-      });
-
-      if (error) {
-        return { error: this.traduzirErro(error.message) };
-      }
-
+      await firstValueFrom(this.http.post('/api/auth/reset-password', { email }));
       return {};
-    } catch {
-      return { error: this.erroDeConexao() };
+    } catch (erro) {
+      return { error: this.traduzirErro(erro) };
     }
   }
 
-  logout(): Promise<void> {
-    return supabase.auth.signOut().then(() => {
-      this.sessionSubject.next(null);
-    });
+  async logout(): Promise<void> {
+    try {
+      await firstValueFrom(this.http.post('/api/auth/logout', {}));
+    } finally {
+      this.sessionSubject.next(undefined);
+    }
   }
 
   get isAuthenticated(): boolean {
-    return this.sessionSubject.value !== null;
-  }
-
-  get token(): string | undefined {
-    return this.sessionSubject.value?.access_token;
+    return this.sessionSubject.value !== undefined;
   }
 
   get nomeUsuario(): string | undefined {
-    const user = this.sessionSubject.value?.user;
-    return (user?.user_metadata?.['name'] as string) ?? user?.email;
+    const sessao = this.sessionSubject.value;
+    return sessao?.nome ?? sessao?.email;
   }
 
-  private traduzirErro(mensagem: string): string {
-    if (mensagem === 'Invalid login credentials') {
-      return 'E-mail ou senha incorretos. Verifique os dados e tente novamente.';
+  private traduzirErro(erro: unknown): string {
+    if (!(erro instanceof HttpErrorResponse)) {
+      return this.erroDeConexao();
     }
 
-    if (mensagem.toLowerCase().includes('already registered')) {
-      return 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.';
+    const codigo = erro.error?.code as string | undefined;
+    switch (codigo) {
+      case 'invalid_credentials':
+        return 'E-mail ou senha incorretos. Verifique os dados e tente novamente.';
+      case 'already_registered':
+        return 'Este e-mail já está cadastrado. Tente entrar em vez de criar uma nova conta.';
+      case 'invalid_request':
+        return 'Dados inválidos. Verifique os campos e tente novamente.';
+      default:
+        return this.erroDeConexao();
     }
-
-    return mensagem;
   }
 
   private erroDeConexao(): string {
