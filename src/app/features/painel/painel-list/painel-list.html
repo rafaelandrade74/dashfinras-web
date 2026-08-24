@@ -4,7 +4,7 @@
 
     <nav class="nav">
       @for (item of navItems; track item.label) {
-        <a class="nav-item" [class.active]="item.ativo">
+        <a class="nav-item" [class.active]="item.ativo" (click)="irPara(item)">
           <i class="ti" [ngClass]="item.icone"></i>
           <span>{{ item.label }}</span>
           @if (item.badge) {

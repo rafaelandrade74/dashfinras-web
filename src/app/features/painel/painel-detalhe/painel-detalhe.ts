@@ -54,7 +54,7 @@ export class PainelDetalhe implements OnInit {
   menuUsuarioAberto = false;
 
   readonly navItems: NavItem[] = [
-    { icone: 'ti-layout-dashboard', label: 'Painéis', ativo: true },
+    { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
     { icone: 'ti-report-money', label: 'Relatórios' },
     { icone: 'ti-settings', label: 'Configurações' },
@@ -130,6 +130,12 @@ export class PainelDetalhe implements OnInit {
 
   voltar(): void {
     this.router.navigateByUrl('/paineis');
+  }
+
+  irPara(item: NavItem): void {
+    if (item.rota) {
+      this.router.navigateByUrl(item.rota);
+    }
   }
 
   get nomeUsuario(): string {

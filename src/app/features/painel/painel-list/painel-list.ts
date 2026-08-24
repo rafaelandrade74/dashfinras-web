@@ -37,7 +37,7 @@ export class PainelList implements OnInit {
   menuUsuarioAberto = false;
 
   readonly navItems: NavItem[] = [
-    { icone: 'ti-layout-dashboard', label: 'Painéis', ativo: true },
+    { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
     { icone: 'ti-report-money', label: 'Relatórios' },
     { icone: 'ti-settings', label: 'Configurações' },
@@ -103,6 +103,12 @@ export class PainelList implements OnInit {
 
   abrirPainel(painel: ResponsePainelDto): void {
     this.router.navigateByUrl(`/paineis/${painel.id}`);
+  }
+
+  irPara(item: NavItem): void {
+    if (item.rota) {
+      this.router.navigateByUrl(item.rota);
+    }
   }
 
   sair(): void {

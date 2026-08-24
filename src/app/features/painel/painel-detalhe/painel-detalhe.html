@@ -4,7 +4,7 @@
 
     <nav class="nav">
       @for (item of navItems; track item.label) {
-        <a class="nav-item" [class.active]="item.ativo">
+        <a class="nav-item" [class.active]="item.ativo" (click)="irPara(item)">
           <i class="ti" [ngClass]="item.icone"></i>
           <span>{{ item.label }}</span>
           @if (item.badge) {
@@ -46,11 +46,10 @@
     } @else if (painel(); as p) {
       <header class="topbar">
         <div>
-          <nav class="breadcrumb mono">
-            <a (click)="voltar()">Painéis</a>
-            <i class="ti ti-chevron-right"></i>
-            <span>{{ p.nome }}</span>
-          </nav>
+          <button type="button" class="btn-voltar" (click)="voltar()">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            Painéis
+          </button>
           <div class="titulo-linha">
             <h1>{{ p.nome }}</h1>
             @if (papelDoUsuario; as papel) {
