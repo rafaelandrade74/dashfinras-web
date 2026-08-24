@@ -16,9 +16,6 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
 
-// Certs locais (dev, HTTPS direto sem proxy) — se não existirem, assumimos que o processo roda
-// atrás de um reverse proxy que termina o TLS (produção), e precisamos confiar nos headers
-// X-Forwarded-* dele pra saber se a conexão original era HTTPS.
 const sslCertPath = process.env['SSL_CERT_PATH'] ?? 'ssl/dev-server.crt';
 const sslKeyPath = process.env['SSL_KEY_PATH'] ?? 'ssl/dev-server.key';
 let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
@@ -27,7 +24,12 @@ try {
 } catch {
   httpsOptions = undefined;
 }
-const behindProxy = !httpsOptions;
+
+// Explícito, não inferido: sem certs locais não significa necessariamente "tem proxy na frente"
+// — pode ser só rodando local em HTTP puro sem TLS nenhum (ex.: teste rápido do build). Inferir
+// isso da ausência de certs quebrava esse caso: o servidor forçava redirect pra https:// mesmo
+// sem nada escutando lá. BEHIND_PROXY precisa ser setado explicitamente em produção.
+const behindProxy = process.env['BEHIND_PROXY'] === 'true';
 
 if (behindProxy) {
   // 1 hop de proxy (a maioria dos setups: um load balancer/reverse proxy só na frente) — sem
@@ -136,9 +138,10 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
         throw error;
       }
 
-      console.log(
-        `Node Express server (SSR) listening on http://localhost:${port} (atrás de proxy, HTTPS forçado via X-Forwarded-Proto)`,
-      );
+      const suffix = behindProxy
+        ? ' (atrás de proxy, HTTPS forçado via X-Forwarded-Proto)'
+        : ' (HTTP puro, sem TLS — defina BEHIND_PROXY=true se houver um reverse proxy na frente)';
+      console.log(`Node Express server (SSR) listening on http://localhost:${port}${suffix}`);
     });
   }
 }
