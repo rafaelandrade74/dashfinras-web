@@ -10,25 +10,22 @@ import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { CoreModule } from './core/core-module';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
-import { credentialsInterceptor } from './core/interceptors/credentials.interceptor';
 
 @NgModule({
-  declarations: [
-    App
-  ],
+  declarations: [App],
   imports: [
     BrowserModule,
     AppRoutingModule,
     CoreModule,
     MatToolbarModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([loadingInterceptor, credentialsInterceptor]))
+    provideHttpClient(withInterceptors([loadingInterceptor])),
   ],
-  bootstrap: [App]
+  bootstrap: [App],
 })
-export class AppModule { }
+export class AppModule {}
