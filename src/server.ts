@@ -57,11 +57,45 @@ app.use((req, res, next) => {
 export { app };
 
 /**
+ * Valida as env vars obrigatórias do BFF antes de começar a aceitar requisições — sem isso, a
+ * primeira falta só aparecia no meio de uma chamada (ex.: SESSION_COOKIE_SECRET sendo lido só
+ * dentro de getValidSession), com um stack trace confuso em vez de uma mensagem clara no boot.
+ */
+function validateRequiredEnv(): void {
+  const missing: string[] = [];
+
+  for (const name of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'API_DASHFINRAS_URL']) {
+    if (!process.env[name]) {
+      missing.push(name);
+    }
+  }
+
+  const cookieSecret = process.env['SESSION_COOKIE_SECRET'];
+  if (!cookieSecret) {
+    missing.push('SESSION_COOKIE_SECRET');
+  } else if (cookieSecret.length < 32) {
+    missing.push(
+      'SESSION_COOKIE_SECRET (tem só ' + cookieSecret.length + ' caracteres, precisa de 32+)',
+    );
+  }
+
+  if (missing.length > 0) {
+    console.error(
+      `Configuração inválida — variáveis de ambiente ausentes/inválidas: ${missing.join(', ')}.\n` +
+        'Copie .env.example para .env e preencha os valores (ver README/CLAUDE.md).',
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Start the server if this module is the main entry point, or it is ran via PM2.
  * O dev local roda em HTTPS com os certs self-signed de ssl/ (mesmos usados pelo `ng serve --ssl`
  * hoje), pra manter paridade de origem/cookies Secure entre os dois workflows de dev.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
+  validateRequiredEnv();
+
   // Porta diferente da do `ng serve` (4200) pra permitir rodar os dois workflows de dev juntos
   // (npm run start:dev) sem conflito de porta.
   const port = Number(process.env['PORT']) || 4300;
