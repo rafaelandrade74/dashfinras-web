@@ -112,6 +112,14 @@ The API (`api-dashfinras`, .NET) lives as a sibling directory and has its own CL
 `AccountController` (`POST account/login`/`account/logout`) is called only server-to-server, by
 this app's own Node BFF — never directly by the browser.
 
+### Deploying to production
+
+See [`docs/deploy.md`](docs/deploy.md) — **`BEHIND_PROXY=true` is easy to forget** (the app boots
+fine without it, no error, it just silently stops forcing HTTPS on the session cookie). Also
+covers the Cloudflare Tunnel (`cloudflared`) quirk: it does **not** add `X-Forwarded-Proto`
+automatically, so `originRequest.headers` in its `config.yml` must inject it manually or every
+request gets redirect-looped.
+
 ## Frontend patterns
 
 See [`docs/padroes-frontend.md`](docs/padroes-frontend.md) for recurring implementation patterns
