@@ -10,11 +10,35 @@ import { readFileSync } from 'node:fs';
 import { createServer as createHttpsServer } from 'node:https';
 import { join } from 'node:path';
 import { createApiApp } from './server/create-api-app';
+import { forceHttps } from './server/force-https';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
-const angularApp = new AngularNodeAppEngine();
+
+// Certs locais (dev, HTTPS direto sem proxy) — se não existirem, assumimos que o processo roda
+// atrás de um reverse proxy que termina o TLS (produção), e precisamos confiar nos headers
+// X-Forwarded-* dele pra saber se a conexão original era HTTPS.
+const sslCertPath = process.env['SSL_CERT_PATH'] ?? 'ssl/dev-server.crt';
+const sslKeyPath = process.env['SSL_KEY_PATH'] ?? 'ssl/dev-server.key';
+let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
+try {
+  httpsOptions = { cert: readFileSync(sslCertPath), key: readFileSync(sslKeyPath) };
+} catch {
+  httpsOptions = undefined;
+}
+const behindProxy = !httpsOptions;
+
+if (behindProxy) {
+  // 1 hop de proxy (a maioria dos setups: um load balancer/reverse proxy só na frente) — sem
+  // isso, req.secure nunca reflete X-Forwarded-Proto e o redirect abaixo vira um loop infinito.
+  app.set('trust proxy', 1);
+  app.use(forceHttps());
+}
+
+const angularApp = new AngularNodeAppEngine(
+  behindProxy ? { trustProxyHeaders: ['x-forwarded-proto', 'x-forwarded-host'] } : undefined,
+);
 
 /**
  * Rotas /api do BFF (auth + proxy pro api-dashfinras) — ver src/server/create-api-app.ts.
@@ -91,7 +115,9 @@ function validateRequiredEnv(): void {
 /**
  * Start the server if this module is the main entry point, or it is ran via PM2.
  * O dev local roda em HTTPS com os certs self-signed de ssl/ (mesmos usados pelo `ng serve --ssl`
- * hoje), pra manter paridade de origem/cookies Secure entre os dois workflows de dev.
+ * hoje), pra manter paridade de origem/cookies Secure entre os dois workflows de dev. Em produção
+ * (sem esses certs), o processo assume que está atrás de um reverse proxy que termina o TLS — ver
+ * forceHttps() acima.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
   validateRequiredEnv();
@@ -99,15 +125,6 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
   // Porta diferente da do `ng serve` (4200) pra permitir rodar os dois workflows de dev juntos
   // (npm run start:dev) sem conflito de porta.
   const port = Number(process.env['PORT']) || 4300;
-  const sslCertPath = process.env['SSL_CERT_PATH'] ?? 'ssl/dev-server.crt';
-  const sslKeyPath = process.env['SSL_KEY_PATH'] ?? 'ssl/dev-server.key';
-
-  let httpsOptions: { cert: Buffer; key: Buffer } | undefined;
-  try {
-    httpsOptions = { cert: readFileSync(sslCertPath), key: readFileSync(sslKeyPath) };
-  } catch {
-    httpsOptions = undefined;
-  }
 
   if (httpsOptions) {
     createHttpsServer(httpsOptions, app).listen(port, () => {
@@ -119,7 +136,9 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
         throw error;
       }
 
-      console.log(`Node Express server (SSR) listening on http://localhost:${port}`);
+      console.log(
+        `Node Express server (SSR) listening on http://localhost:${port} (atrás de proxy, HTTPS forçado via X-Forwarded-Proto)`,
+      );
     });
   }
 }
