@@ -1,8 +1,17 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PainelService } from '../../../core/services/painel.service';
 import { AccountService } from '../../../core/services/account.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+
+interface NavItem {
+  icone: string;
+  label: string;
+  rota?: string;
+  badge?: number;
+  ativo?: boolean;
+}
 
 interface TransacaoPlaceholder {
   descricao: string;
@@ -34,17 +43,29 @@ const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
   templateUrl: './painel-detalhe.html',
 })
 export class PainelDetalhe implements OnInit {
+  @ViewChild('sidebarFooter') private readonly sidebarFooter?: ElementRef<HTMLElement>;
+
   readonly painel = signal<ResponsePainelDto | undefined>(undefined);
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
 
   readonly transacoes = TRANSACOES_PLACEHOLDER;
 
+  menuUsuarioAberto = false;
+
+  readonly navItems: NavItem[] = [
+    { icone: 'ti-layout-dashboard', label: 'Painéis', ativo: true },
+    { icone: 'ti-arrows-exchange', label: 'Transações' },
+    { icone: 'ti-report-money', label: 'Relatórios' },
+    { icone: 'ti-settings', label: 'Configurações' },
+  ];
+
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly painelService: PainelService,
-    private readonly accountService: AccountService
+    private readonly accountService: AccountService,
+    protected readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -109,5 +130,23 @@ export class PainelDetalhe implements OnInit {
 
   voltar(): void {
     this.router.navigateByUrl('/paineis');
+  }
+
+  get nomeUsuario(): string {
+    const usuario = this.accountService.usuarioAtual;
+    const nomeCadastrado = [usuario?.firstName, usuario?.lastName].filter(Boolean).join(' ').trim();
+    return nomeCadastrado || this.authService.nomeUsuario || 'Usuário';
+  }
+
+  sair(): void {
+    this.menuUsuarioAberto = false;
+    this.authService.logout().then(() => this.router.navigateByUrl('/login'));
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.menuUsuarioAberto && !this.sidebarFooter?.nativeElement.contains(event.target as Node)) {
+      this.menuUsuarioAberto = false;
+    }
   }
 }
