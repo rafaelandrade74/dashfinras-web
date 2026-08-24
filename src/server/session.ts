@@ -18,10 +18,16 @@ function requireCookieSecret(): string {
   return secret;
 }
 
+// Quanto tempo o cookie df_session sobrevive no navegador antes de exigir login de novo,
+// independente do access_token individual expirar antes disso (esses são renovados
+// automaticamente via refresh_token em getValidSession, enquanto o cookie em si for válido).
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 dias
+
 export function sessionOptions() {
   return {
     cookieName: 'df_session',
     password: requireCookieSecret(),
+    ttl: SESSION_TTL_SECONDS,
     cookieOptions: {
       secure: true,
       sameSite: 'lax' as const,
