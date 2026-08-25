@@ -1,9 +1,12 @@
 import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { Erro } from '../../../core/models/erro.model';
 
 interface NavItem {
   icone: string;
@@ -53,6 +56,11 @@ export class PainelDetalhe implements OnInit {
 
   menuUsuarioAberto = false;
 
+  readonly renomearAberto = signal(false);
+  readonly renomeando = signal(false);
+  readonly erroRenomear = signal<string | undefined>(undefined);
+  readonly renomearForm: FormGroup;
+
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
@@ -65,8 +73,13 @@ export class PainelDetalhe implements OnInit {
     private readonly router: Router,
     private readonly painelService: PainelService,
     private readonly accountService: AccountService,
-    protected readonly authService: AuthService
-  ) {}
+    protected readonly authService: AuthService,
+    private readonly fb: FormBuilder
+  ) {
+    this.renomearForm = this.fb.group({
+      nome: ['', Validators.required]
+    });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -130,6 +143,46 @@ export class PainelDetalhe implements OnInit {
 
   voltar(): void {
     this.router.navigateByUrl('/paineis');
+  }
+
+  abrirRenomear(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+    this.renomearForm.setValue({ nome: painel.nome ?? '' });
+    this.erroRenomear.set(undefined);
+    this.renomearAberto.set(true);
+  }
+
+  fecharRenomear(): void {
+    this.renomearAberto.set(false);
+  }
+
+  salvarRenomear(): void {
+    const painel = this.painel();
+    if (!painel || this.renomearForm.invalid) {
+      this.renomearForm.markAllAsTouched();
+      return;
+    }
+
+    this.renomeando.set(true);
+    this.erroRenomear.set(undefined);
+
+    const { nome } = this.renomearForm.value;
+
+    this.painelService.atualizarPainel({ id: painel.id, nome }).pipe(
+      finalize(() => this.renomeando.set(false))
+    ).subscribe({
+      next: (painelAtualizado) => {
+        this.painel.set(painelAtualizado);
+        this.renomearAberto.set(false);
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroRenomear.set(erros[0]?.descricao ?? 'Não foi possível renomear o painel. Tente novamente.');
+      }
+    });
   }
 
   irPara(item: NavItem): void {

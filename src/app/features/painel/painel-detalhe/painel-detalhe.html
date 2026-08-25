@@ -62,7 +62,7 @@
 
         <div class="acoes">
           @if (podeGerenciar) {
-            <button type="button" class="btn-secundario">
+            <button type="button" class="btn-secundario" (click)="abrirRenomear()">
               <i class="ti ti-edit" aria-hidden="true"></i>
               Renomear
             </button>
@@ -132,4 +132,56 @@
       </main>
     }
   </div>
+
+  @if (renomearAberto()) {
+    <div class="backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <div>
+            <h1>Renomear painel</h1>
+          </div>
+          <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharRenomear()">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <form [formGroup]="renomearForm" (ngSubmit)="salvarRenomear()" novalidate>
+          <div class="modal-body">
+            <div class="field">
+              <label for="nome-renomear">Nome do painel</label>
+              <input
+                id="nome-renomear"
+                type="text"
+                formControlName="nome"
+                [class.error]="renomearForm.controls['nome'].invalid && renomearForm.controls['nome'].touched"
+                autocomplete="off"
+              />
+              @if (renomearForm.controls['nome'].invalid && renomearForm.controls['nome'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Nome do painel é obrigatório
+                </div>
+              }
+            </div>
+
+            @if (erroRenomear()) {
+              <div class="api-error" role="alert">
+                <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                <span>{{ erroRenomear() }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn-secundario" (click)="fecharRenomear()">Cancelar</button>
+            <button type="submit" class="btn-primario" [disabled]="renomeando()">
+              @if (renomeando()) {
+                <span class="spinner" aria-hidden="true"></span>
+              }
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
 </div>
