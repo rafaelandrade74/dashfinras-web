@@ -75,6 +75,26 @@
             <i class="ti ti-plus" aria-hidden="true"></i>
             Registrar
           </button>
+          @if (podeExcluir) {
+            <div class="menu-acoes" [class.open]="menuAcoesAberto" #menuAcoes>
+              <button
+                type="button"
+                class="btn-icone"
+                aria-label="Mais ações"
+                (click)="menuAcoesAberto = !menuAcoesAberto"
+              >
+                <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+              </button>
+              @if (menuAcoesAberto) {
+                <div class="menu-dropdown">
+                  <button type="button" class="menu-dropdown-item item-perigo" (click)="abrirExcluir()">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                    <span>Excluir painel</span>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </div>
       </header>
 
@@ -181,6 +201,46 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  @if (excluirAberto()) {
+    <div class="backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <div>
+            <h1>Excluir painel</h1>
+            <div class="modal-sub">Esta ação não pode ser desfeita.</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharExcluir()">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            Tem certeza que deseja excluir o painel <strong>{{ painel()?.nome }}</strong>? Todos os
+            dados associados serão perdidos.
+          </p>
+
+          @if (erroExcluir()) {
+            <div class="api-error" role="alert">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+              <span>{{ erroExcluir() }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn-secundario" (click)="fecharExcluir()">Cancelar</button>
+          <button type="button" class="btn-perigo" [disabled]="excluindo()" (click)="confirmarExcluir()">
+            @if (excluindo()) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            Excluir painel
+          </button>
+        </div>
       </div>
     </div>
   }

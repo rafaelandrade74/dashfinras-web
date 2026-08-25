@@ -47,6 +47,7 @@ const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
 })
 export class PainelDetalhe implements OnInit {
   @ViewChild('sidebarFooter') private readonly sidebarFooter?: ElementRef<HTMLElement>;
+  @ViewChild('menuAcoes') private readonly menuAcoes?: ElementRef<HTMLElement>;
 
   readonly painel = signal<ResponsePainelDto | undefined>(undefined);
   readonly carregando = signal(false);
@@ -55,11 +56,16 @@ export class PainelDetalhe implements OnInit {
   readonly transacoes = TRANSACOES_PLACEHOLDER;
 
   menuUsuarioAberto = false;
+  menuAcoesAberto = false;
 
   readonly renomearAberto = signal(false);
   readonly renomeando = signal(false);
   readonly erroRenomear = signal<string | undefined>(undefined);
   readonly renomearForm: FormGroup;
+
+  readonly excluirAberto = signal(false);
+  readonly excluindo = signal(false);
+  readonly erroExcluir = signal<string | undefined>(undefined);
 
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
@@ -121,6 +127,17 @@ export class PainelDetalhe implements OnInit {
     const usuario = painel.usuarios?.find((u) => u.id === usuarioAtualId);
     const permissao = usuario?.idPermissao ?? PainelPermissao.Visualizador;
     return permissao === PainelPermissao.Dono || permissao === PainelPermissao.Administrador;
+  }
+
+  get podeExcluir(): boolean {
+    const painel = this.painel();
+    if (!painel) {
+      return false;
+    }
+    const usuarioAtualId = this.accountService.usuarioAtual?.id;
+    const usuario = painel.usuarios?.find((u) => u.id === usuarioAtualId);
+    const permissao = usuario?.idPermissao ?? PainelPermissao.Visualizador;
+    return permissao === PainelPermissao.Dono;
   }
 
   get totalEntradas(): number {
@@ -185,6 +202,38 @@ export class PainelDetalhe implements OnInit {
     });
   }
 
+  abrirExcluir(): void {
+    this.menuAcoesAberto = false;
+    this.erroExcluir.set(undefined);
+    this.excluirAberto.set(true);
+  }
+
+  fecharExcluir(): void {
+    this.excluirAberto.set(false);
+  }
+
+  confirmarExcluir(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.excluindo.set(true);
+    this.erroExcluir.set(undefined);
+
+    this.painelService.deletarPainel(painel.id).pipe(
+      finalize(() => this.excluindo.set(false))
+    ).subscribe({
+      next: () => {
+        this.router.navigateByUrl('/paineis');
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroExcluir.set(erros[0]?.descricao ?? 'Não foi possível excluir o painel. Tente novamente.');
+      }
+    });
+  }
+
   irPara(item: NavItem): void {
     if (item.rota) {
       this.router.navigateByUrl(item.rota);
@@ -206,6 +255,9 @@ export class PainelDetalhe implements OnInit {
   onDocumentClick(event: MouseEvent): void {
     if (this.menuUsuarioAberto && !this.sidebarFooter?.nativeElement.contains(event.target as Node)) {
       this.menuUsuarioAberto = false;
+    }
+    if (this.menuAcoesAberto && !this.menuAcoes?.nativeElement.contains(event.target as Node)) {
+      this.menuAcoesAberto = false;
     }
   }
 }
