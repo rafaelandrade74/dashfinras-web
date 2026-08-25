@@ -51,3 +51,6 @@ Thumbs.db
 # Server (SSR/BFF) config — contains real Supabase/API credentials and the cookie secret.
 # Copy .env.example to .env to get started.
 /.env
+
+# Claude Code local/personal settings (spec-kit .claude/skills are committed, this is per-user)
+.claude/settings.local.json
