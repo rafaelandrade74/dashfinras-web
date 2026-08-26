@@ -157,41 +157,23 @@ simular falha de rede e verificar que a pessoa pode tentar novamente sem perder 
 
 ---
 
-## Phase 6: User Story 4 - Acompanhar convites enviados por um painel (Priority: P2)
+## Phase 6: User Story 4 - Acompanhar convites enviados por um painel (Priority: P2) — REMOVIDA DESTA ENTREGA
 
-**Goal**: Aba "Convites enviados" na tela de detalhe do painel, visível só para o dono, listando
-e-mail/papel/status/data de cada convite retornado pela API, com opção de reenviar convites
-Recusados/Expirados e estado vazio quando não há convites.
+**Status (2026-08-26)**: implementada (T018-T022) como aba própria em `painel-detalhe`, testada e
+depois **removida a pedido do usuário** — a UI de "Convites enviados" vai morar dentro do botão
+"Usuários" já existente no topo da tela de detalhe (fluxo da issue #22 "Criar tela de gerenciar
+usuários de um painel"), não como uma aba separada ao lado de "Entradas e saídas". `painel-detalhe`
+voltou ao estado anterior a esta feature; `ConviteService.listarConvites`/`criarConvite` (reenvio)
+seguem prontos e cobertos pelo `contracts/convite-api.md` para serem consumidos quando a tela de
+usuários (#22) for implementada.
 
-**Independent Test**: Com um painel que já tem convites em status variados, abrir a aba "Convites
-enviados" e verificar que a lista bate com o retorno de `GET /api/painel/{id}/convites`; confirmar
-que a aba não aparece para quem não é dono; acionar "Reenviar" em um convite Recusado/Expirado e
-verificar que a lista é recarregada.
+- [x] ~~T018~~ [US4] (implementado e depois revertido — ver nota acima)
+- [x] ~~T019~~ [US4] (implementado e depois revertido — ver nota acima)
+- [x] ~~T020~~ [US4] (implementado e depois revertido — ver nota acima)
+- [x] ~~T021~~ [US4] (implementado e depois revertido — ver nota acima)
+- [x] ~~T022~~ [US4] (implementado e depois revertido — ver nota acima)
 
-### Implementation for User Story 4
-
-- [X] T018 [US4] Adicionar signals `convites`, `carregandoConvites`, `erroConvites` e `abaAtiva`
-      (`'transacoes' | 'convites'`) em
-      `src/app/features/painel/painel-detalhe/painel-detalhe.ts`, carregando a lista via
-      `ConviteService.listarConvites(painel.id)` somente quando `podeExcluir` (dono, já existente em
-      `painel-detalhe.ts`) for verdadeiro (FR-017)
-- [X] T019 [US4] Adicionar a navegação por abas ("Entradas e saídas" / "Convites enviados", esta
-      última só para o dono) e a tabela de convites (e-mail, papel, badge de status, data de envio,
-      botão de reenviar em linhas Recusado/Expirado) em
-      `src/app/features/painel/painel-detalhe/painel-detalhe.html`, seguindo o artboard 04 aprovado
-      (FR-018)
-- [X] T020 [US4] Adicionar estado vazio ("nenhum convite enviado ainda") quando `convites()` estiver
-      vazio, na mesma seção de `painel-detalhe.html` (FR-020)
-- [X] T021 [US4] Adicionar os estilos da aba/tabela de convites (`.tab-row`, `.invite-table`,
-      `.status-badge` por status, `.approve-note`) em
-      `src/app/features/painel/painel-detalhe/painel-detalhe.scss`, reaproveitando os tokens de cor já
-      usados no restante do componente
-- [X] T022 [US4] Implementar `reenviarConvite(convite)` em `painel-detalhe.ts`: chama
-      `ConviteService.criarConvite` com o mesmo e-mail/papel do convite selecionado e, ao concluir,
-      recarrega a lista via `listarConvites` — sem nenhuma lógica de merge/dedup client-side
-      (FR-019, Clarifications sessão 2026-08-25)
-
-**Checkpoint**: Todas as 4 user stories funcionam de forma independente.
+**Checkpoint**: US1, US2 e US3 entregues nesta feature; US4 fica para a issue #22.
 
 ---
 

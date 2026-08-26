@@ -70,7 +70,14 @@ Depois de aceitar ou recusar, a pessoa convidada vê uma confirmação clara do 
 
 ---
 
-### User Story 4 - Acompanhar convites enviados por um painel (Priority: P2)
+### User Story 4 - Acompanhar convites enviados por um painel (Priority: P2) — REMOVIDA DESTA ENTREGA (2026-08-26)
+
+> **Fora de escopo nesta entrega.** Foi implementada como uma aba dedicada em `painel-detalhe`,
+> testada e depois removida a pedido do usuário: a visualização/reenvio de convites vai morar
+> dentro do botão "Usuários" já existente na tela de detalhe (fluxo da issue #22 — "Criar tela de
+> gerenciar usuários de um painel"), não como uma aba separada. `ConviteService.listarConvites` e
+> `criarConvite` (usado para reenvio) já existem e cobrem os requisitos abaixo — a issue #22 deve
+> consumi-los ao implementar essa tela, em vez de reespecificar o contrato.
 
 O dono do painel quer ver, a qualquer momento, todos os convites que já enviou para aquele painel e o status de cada um (pendente, aceito, recusado, expirado), podendo reenviar um convite que não teve sucesso.
 
@@ -116,10 +123,10 @@ O dono do painel quer ver, a qualquer momento, todos os convites que já enviou 
 - **FR-014**: O sistema MUST identificar e comunicar claramente quando o token de convite acessado é inválido ou inexistente.
 - **FR-015**: O sistema MUST exibir uma confirmação após a pessoa aceitar um convite, incluindo um caminho direto para acessar o painel.
 - **FR-016**: O sistema MUST exibir uma confirmação após a pessoa recusar um convite, deixando claro que nenhuma alteração foi feita.
-- **FR-017**: O sistema MUST oferecer, na tela de detalhe do painel, uma aba "Convites enviados" visível apenas para o dono do painel.
-- **FR-018**: A aba "Convites enviados" MUST listar, para cada convite retornado pela API, o e-mail do convidado, o papel oferecido, o status atual (Pendente, Aceito, Recusado ou Expirado) e a data de envio, exibindo exatamente os registros retornados pelo backend, sem nenhuma deduplicação, agrupamento ou merge feito no frontend.
-- **FR-019**: O sistema MUST permitir ao dono reenviar um convite com status Recusado ou Expirado para o mesmo e-mail e papel originais; após o reenvio, a lista MUST ser recarregada a partir da API para refletir o que o backend retornar (seja substituição da entrada, seja um novo registro histórico).
-- **FR-020**: O sistema MUST exibir uma mensagem de estado vazio na aba "Convites enviados" quando o painel não tiver nenhum convite registrado.
+- **FR-017** _(deferida para a issue #22 — ver nota em User Story 4)_: O sistema MUST oferecer, na tela de detalhe do painel, uma forma de visualizar convites enviados, visível apenas para o dono do painel.
+- **FR-018** _(deferida para a issue #22)_: A visualização de convites MUST listar, para cada convite retornado pela API, o e-mail do convidado, o papel oferecido, o status atual (Pendente, Aceito, Recusado ou Expirado) e a data de envio, exibindo exatamente os registros retornados pelo backend, sem nenhuma deduplicação, agrupamento ou merge feito no frontend.
+- **FR-019** _(deferida para a issue #22)_: O sistema MUST permitir ao dono reenviar um convite com status Recusado ou Expirado para o mesmo e-mail e papel originais; após o reenvio, a lista MUST ser recarregada a partir da API para refletir o que o backend retornar (seja substituição da entrada, seja um novo registro histórico).
+- **FR-020** _(deferida para a issue #22)_: O sistema MUST exibir uma mensagem de estado vazio na visualização de convites quando o painel não tiver nenhum convite registrado.
 - **FR-021**: O sistema MUST comunicar de forma amigável qualquer falha de comunicação ao adicionar convites, aceitar, recusar ou reenviar, permitindo nova tentativa sem perda do contexto atual do usuário.
 
 ### Key Entities *(include if feature involves data)*
@@ -135,8 +142,8 @@ O dono do painel quer ver, a qualquer momento, todos os convites que já enviou 
 - **SC-001**: Um usuário consegue adicionar um convidado por e-mail ao criar um painel e concluir a criação em menos de 1 minuto, sem precisar sair da tela de criação do painel.
 - **SC-002**: 100% dos convites disparados (associação direta ou e-mail de convite) refletem corretamente o papel escolhido pelo dono do painel.
 - **SC-003**: Uma pessoa convidada consegue entender, sem precisar de explicação externa, quem a convidou, para qual painel e com qual papel, em até 5 segundos de leitura da página de convite.
-- **SC-004**: O dono do painel consegue identificar o status de qualquer convite enviado (pendente, aceito, recusado ou expirado) sem precisar consultar nenhum canal fora da aplicação (como e-mail ou suporte).
-- **SC-005**: Convites com status Recusado ou Expirado podem ser reenviados pelo dono em no máximo 2 cliques a partir da lista de convites enviados.
+- **SC-004** _(deferida para a issue #22)_: O dono do painel consegue identificar o status de qualquer convite enviado (pendente, aceito, recusado ou expirado) sem precisar consultar nenhum canal fora da aplicação (como e-mail ou suporte).
+- **SC-005** _(deferida para a issue #22)_: Convites com status Recusado ou Expirado podem ser reenviados pelo dono em no máximo 2 cliques a partir da lista de convites enviados.
 
 ## Assumptions
 
