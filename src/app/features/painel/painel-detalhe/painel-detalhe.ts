@@ -3,9 +3,11 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
+import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import { Erro } from '../../../core/models/erro.model';
 
 interface NavItem {
@@ -29,6 +31,15 @@ const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Administrador]: { label: 'Adm', classe: 'badge-adm' },
   [PainelPermissao.Membro]: { label: 'Membro', classe: 'badge-membro' },
   [PainelPermissao.Visualizador]: { label: 'Visualizador', classe: 'badge-visualizador' },
+};
+
+const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
+  [StatusConvite.PendenteCadastro]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.PendenteAprovacao]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.Concluido]: { label: 'Aceito', classe: 'status-aceito' },
+  [StatusConvite.Recusado]: { label: 'Recusado', classe: 'status-recusado' },
+  [StatusConvite.Expirado]: { label: 'Expirado', classe: 'status-expirado' },
+  [StatusConvite.Invalidado]: { label: 'Invalidado', classe: 'status-expirado' },
 };
 
 const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
@@ -67,6 +78,12 @@ export class PainelDetalhe implements OnInit {
   readonly excluindo = signal(false);
   readonly erroExcluir = signal<string | undefined>(undefined);
 
+  readonly abaAtiva = signal<'transacoes' | 'convites'>('transacoes');
+  readonly convites = signal<ResponseConviteDto[]>([]);
+  readonly carregandoConvites = signal(false);
+  readonly erroConvites = signal<string | undefined>(undefined);
+  readonly reenviandoConviteId = signal<string | undefined>(undefined);
+
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
@@ -78,6 +95,7 @@ export class PainelDetalhe implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly painelService: PainelService,
+    private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
     private readonly fb: FormBuilder
@@ -99,11 +117,30 @@ export class PainelDetalhe implements OnInit {
       next: (painel) => {
         this.painel.set(painel);
         this.carregando.set(false);
+        if (this.podeExcluir) {
+          this.carregarConvites(painel.id);
+        }
       },
       error: () => {
         this.erro.set('Não foi possível carregar o painel.');
         this.carregando.set(false);
       },
+    });
+  }
+
+  private carregarConvites(painelId: string): void {
+    this.carregandoConvites.set(true);
+    this.erroConvites.set(undefined);
+
+    this.conviteService.listarConvites(painelId).subscribe({
+      next: (resposta) => {
+        this.convites.set(resposta.convites ?? []);
+        this.carregandoConvites.set(false);
+      },
+      error: () => {
+        this.erroConvites.set('Não foi possível carregar os convites enviados.');
+        this.carregandoConvites.set(false);
+      }
     });
   }
 
@@ -232,6 +269,47 @@ export class PainelDetalhe implements OnInit {
         this.erroExcluir.set(erros[0]?.descricao ?? 'Não foi possível excluir o painel. Tente novamente.');
       }
     });
+  }
+
+  abrirAba(aba: 'transacoes' | 'convites'): void {
+    this.abaAtiva.set(aba);
+  }
+
+  statusInfo(status: StatusConvite): { label: string; classe: string } {
+    return STATUS_INFO[status];
+  }
+
+  papelInfo(permissao: PainelPermissao): { label: string; classe: string } {
+    return PAPEL_INFO[permissao];
+  }
+
+  podeReenviar(status: StatusConvite): boolean {
+    return status === StatusConvite.Recusado
+      || status === StatusConvite.Expirado
+      || status === StatusConvite.Invalidado;
+  }
+
+  reenviarConvite(convite: ResponseConviteDto): void {
+    const painel = this.painel();
+    if (!painel || !convite.emailConvidado) {
+      return;
+    }
+
+    this.reenviandoConviteId.set(convite.id);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email: convite.emailConvidado,
+        permissao: convite.permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .pipe(finalize(() => this.reenviandoConviteId.set(undefined)))
+      .subscribe({
+        next: () => this.carregarConvites(painel.id),
+        error: () => {
+          this.erroConvites.set('Não foi possível reenviar o convite. Tente novamente.');
+        }
+      });
   }
 
   irPara(item: NavItem): void {

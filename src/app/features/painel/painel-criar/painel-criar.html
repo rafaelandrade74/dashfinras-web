@@ -31,22 +31,97 @@
 
         <div class="empty-hint">Você será o Dono deste painel automaticamente.</div>
 
+        <div class="section-users">
+          <div class="label-row">
+            <span class="title">Usuários (opcional)</span>
+          </div>
+
+          @if (pendentes().length > 0) {
+            <div class="pending-list">
+              @for (pendente of pendentes(); track pendente.email) {
+                <div class="pending-item">
+                  <div class="avatar-stub">{{ pendente.email.charAt(0).toUpperCase() }}</div>
+                  <div class="who">
+                    <div class="email">{{ pendente.email }}</div>
+                  </div>
+                  <span class="role-chip" [class]="'role-' + pendente.permissao">{{ papelLabel(pendente.permissao) }}</span>
+                  <button
+                    type="button"
+                    class="btn-remove"
+                    aria-label="Remover {{ pendente.email }}"
+                    (click)="removerPendente(pendente.email)"
+                  >
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="invite-row" [formGroup]="conviteForm">
+            <div class="field">
+              <label for="convite-email">E-mail</label>
+              <input
+                id="convite-email"
+                type="email"
+                formControlName="email"
+                placeholder="nome@exemplo.com"
+                autocomplete="off"
+                (keydown.enter)="$event.preventDefault(); adicionarPendente()"
+              />
+            </div>
+            <div class="field">
+              <label for="convite-papel">Papel</label>
+              <select id="convite-papel" formControlName="permissao">
+                @for (papel of papeis; track papel.valor) {
+                  <option [value]="papel.valor">{{ papel.label }}</option>
+                }
+              </select>
+            </div>
+            <button type="button" class="btn-icon-add" aria-label="Adicionar" (click)="adicionarPendente()">
+              <i class="ti ti-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          @if (erroConvite()) {
+            <div class="field-error" role="alert">
+              <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ erroConvite() }}
+            </div>
+          }
+
+          <div class="hint-note">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            <span>Se o e-mail já tiver conta, a pessoa entra direto no painel. Se não, ela recebe um convite por e-mail para se cadastrar.</span>
+          </div>
+        </div>
+
         @if (mensagemErro()) {
           <div class="api-error" role="alert">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
             <span>{{ mensagemErro() }}</span>
           </div>
         }
+
+        @if (avisoConvites()) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ avisoConvites() }}</span>
+          </div>
+        }
       </div>
 
       <div class="modal-foot">
-        <button type="button" class="btn-secundario" (click)="cancelar()">Cancelar</button>
-        <button type="submit" class="btn-primario" [disabled]="salvando()">
-          @if (salvando()) {
-            <span class="spinner" aria-hidden="true"></span>
-          }
-          Criar painel
-        </button>
+        @if (avisoConvites()) {
+          <button type="button" class="btn-primario" (click)="cancelar()">Ir para painéis</button>
+        } @else {
+          <button type="button" class="btn-secundario" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn-primario" [disabled]="salvando()">
+            @if (salvando()) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            Criar painel
+          </button>
+        }
       </div>
     </form>
   </div>
