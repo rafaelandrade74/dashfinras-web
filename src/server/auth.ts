@@ -4,15 +4,6 @@ import { getSession, getValidSession, decodeJwtExp } from './session';
 
 export interface AuthRouterDeps {
   supabaseAdmin: Pick<SupabaseClient, 'auth'>;
-  fetchFn?: typeof fetch;
-}
-
-function requireApiUrl(): string {
-  const url = process.env['API_DASHFINRAS_URL'];
-  if (!url) {
-    throw new Error("Variável de ambiente 'API_DASHFINRAS_URL' não definida.");
-  }
-  return url;
 }
 
 function errorCode(message: string | undefined): string {
@@ -22,32 +13,17 @@ function errorCode(message: string | undefined): string {
 }
 
 /**
- * Cria o router de auth do BFF, com as dependências (client Supabase, fetch) injetadas em vez de
+ * Cria o router de auth do BFF, com as dependências (client Supabase) injetadas em vez de
  * importadas como singleton — permite testar a lógica com dublês, sem mocking de módulo.
+ *
+ * A API .NET (api-dashfinras) valida o JWT do Supabase diretamente via Authorization: Bearer
+ * (ver docs/08-authentication.md no repo da API) — não há mais troca de sessão servidor-a-servidor
+ * (POST account/login/logout foram removidos da API em 2026-08-24, spec
+ * 002-remove-login-logout-endpoints). O BFF só fala com o Supabase Auth e guarda o token no cookie
+ * httpOnly; api-proxy.ts injeta esse mesmo token como Bearer nas chamadas a /api/*.
  */
-export function createAuthRouter({ supabaseAdmin, fetchFn = fetch }: AuthRouterDeps): Router {
+export function createAuthRouter({ supabaseAdmin }: AuthRouterDeps): Router {
   const router = Router();
-
-  /**
-   * Troca o access_token/refresh_token do Supabase por cookies httpOnly no api-dashfinras (.NET)
-   * — chamada servidor-a-servidor, sem CORS/SameSite envolvidos. O Set-Cookie devolvido pela API
-   * é ignorado: quem sustenta a sessão do browser é o cookie df_session, same-origin com o front.
-   */
-  async function trocarSessaoPelaApi(accessToken: string, refreshToken: string): Promise<boolean> {
-    try {
-      const response = await fetchFn(`${requireApiUrl()}/account/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ accessToken, refreshToken }),
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
 
   router.post('/login', async (req, res) => {
     const { email, password } = req.body ?? {};
@@ -59,14 +35,6 @@ export function createAuthRouter({ supabaseAdmin, fetchFn = fetch }: AuthRouterD
       const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
       if (error || !data.session) {
         return res.status(401).json({ code: errorCode(error?.message) });
-      }
-
-      const trocouComSucesso = await trocarSessaoPelaApi(
-        data.session.access_token,
-        data.session.refresh_token,
-      );
-      if (!trocouComSucesso) {
-        return res.status(502).json({ code: 'account_api_unavailable' });
       }
 
       const session = await getSession(req, res);
@@ -103,14 +71,6 @@ export function createAuthRouter({ supabaseAdmin, fetchFn = fetch }: AuthRouterD
       }
 
       if (data.session) {
-        const trocouComSucesso = await trocarSessaoPelaApi(
-          data.session.access_token,
-          data.session.refresh_token,
-        );
-        if (!trocouComSucesso) {
-          return res.status(502).json({ code: 'account_api_unavailable' });
-        }
-
         const session = await getSession(req, res);
         session.accessToken = data.session.access_token;
         session.refreshToken = data.session.refresh_token;
@@ -159,18 +119,9 @@ export function createAuthRouter({ supabaseAdmin, fetchFn = fetch }: AuthRouterD
 
     if (session.accessToken) {
       try {
-        await fetchFn(`${requireApiUrl()}/account/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-        });
-      } catch {
-        // Best-effort: o logout do front não falha se a API .NET estiver indisponível.
-      }
-
-      try {
         await supabaseAdmin.auth.signOut();
       } catch {
-        // Idem — não bloqueia o logout local.
+        // Best-effort — não bloqueia o logout local se o Supabase estiver indisponível.
       }
     }
 
