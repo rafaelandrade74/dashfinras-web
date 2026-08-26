@@ -695,3 +695,47 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   .badge { flex-shrink: 0; }
 }
 
+/* ============ Abas do modal Usuários (Convites enviados) ============ */
+.tab-row { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); }
+.tab {
+  padding: 8px 4px; font-size: 12.5px; color: var(--ink-faint); cursor: pointer;
+  border: none; background: none; border-bottom: 2px solid transparent;
+  font-weight: 500; font-family: inherit;
+  &.active { color: var(--ink); border-color: var(--accent); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+.empty-pane {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 32px 0; color: var(--ink-faint); text-align: center;
+  i { font-size: 24px; }
+  p { margin: 0; font-size: 13px; }
+}
+
+.invite-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.invite-row-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 5px;
+  .avatar { width: 30px; height: 30px; font-size: 12px; }
+  .who { flex: 1; min-width: 0; }
+  .email { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .date { font-size: 10.5px; color: var(--ink-faint); margin-top: 1px; }
+}
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+}
+.status-pendente { background: var(--accent-wash); color: var(--accent-strong); .dot { background: var(--accent); } }
+.status-aceito { background: var(--teal-wash); color: var(--teal); .dot { background: var(--teal); } }
+.status-recusado { background: var(--danger-wash); color: var(--danger); .dot { background: var(--danger); } }
+.status-expirado { background: rgba(75, 87, 73, 0.1); color: var(--ink-faint); .dot { background: var(--ink-faint); } }
+
+.btn-reenviar {
+  font-size: 11.5px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 5px;
+  flex-shrink: 0;
+  .spinner { border-color: rgba(75, 87, 73, 0.25); border-top-color: var(--ink-soft); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+}
+

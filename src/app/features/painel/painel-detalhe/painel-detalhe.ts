@@ -7,6 +7,7 @@ import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import { Erro } from '../../../core/models/erro.model';
 import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
 
@@ -33,6 +34,15 @@ const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Administrador]: { label: 'Adm', classe: 'badge-adm' },
   [PainelPermissao.Membro]: { label: 'Membro', classe: 'badge-membro' },
   [PainelPermissao.Visualizador]: { label: 'Visualizador', classe: 'badge-visualizador' },
+};
+
+const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
+  [StatusConvite.PendenteCadastro]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.PendenteAprovacao]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.Concluido]: { label: 'Aceito', classe: 'status-aceito' },
+  [StatusConvite.Recusado]: { label: 'Recusado', classe: 'status-recusado' },
+  [StatusConvite.Expirado]: { label: 'Expirado', classe: 'status-expirado' },
+  [StatusConvite.Invalidado]: { label: 'Invalidado', classe: 'status-expirado' },
 };
 
 const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
@@ -77,6 +87,13 @@ export class PainelDetalhe implements OnInit {
   readonly avisoAdicionarUsuario = signal<string | undefined>(undefined);
   readonly adicionarUsuarioForm: FormGroup;
   readonly papeis = PAPEIS_CONVITE;
+
+  readonly usuariosAba = signal<'usuarios' | 'convites'>('usuarios');
+  readonly convites = signal<ResponseConviteDto[]>([]);
+  readonly convitesCarregados = signal(false);
+  readonly carregandoConvites = signal(false);
+  readonly erroConvites = signal<string | undefined>(undefined);
+  readonly reenviandoConviteId = signal<string | undefined>(undefined);
 
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
@@ -262,6 +279,69 @@ export class PainelDetalhe implements OnInit {
       return;
     }
     this.usuariosAberto.set(false);
+    this.usuariosAba.set('usuarios');
+  }
+
+  abrirAbaModal(aba: 'usuarios' | 'convites'): void {
+    this.usuariosAba.set(aba);
+    if (aba === 'convites' && !this.convitesCarregados()) {
+      this.carregarConvites();
+    }
+  }
+
+  private carregarConvites(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.carregandoConvites.set(true);
+    this.erroConvites.set(undefined);
+
+    this.conviteService.listarConvites(painel.id).subscribe({
+      next: (resposta) => {
+        this.convites.set(resposta.convites ?? []);
+        this.convitesCarregados.set(true);
+        this.carregandoConvites.set(false);
+      },
+      error: () => {
+        this.erroConvites.set('Não foi possível carregar os convites enviados.');
+        this.carregandoConvites.set(false);
+      }
+    });
+  }
+
+  statusInfo(status: StatusConvite): { label: string; classe: string } {
+    return STATUS_INFO[status];
+  }
+
+  podeReenviar(status: StatusConvite): boolean {
+    return status === StatusConvite.Recusado
+      || status === StatusConvite.Expirado
+      || status === StatusConvite.Invalidado;
+  }
+
+  reenviarConvite(convite: ResponseConviteDto): void {
+    const painel = this.painel();
+    if (!painel || !convite.emailConvidado) {
+      return;
+    }
+
+    this.reenviandoConviteId.set(convite.id);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email: convite.emailConvidado,
+        permissao: convite.permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .pipe(finalize(() => this.reenviandoConviteId.set(undefined)))
+      .subscribe({
+        next: () => this.carregarConvites(),
+        error: () => {
+          this.erroConvites.set('Não foi possível reenviar o convite. Tente novamente.');
+        }
+      });
   }
 
   ehUsuarioLogado(usuarioId: string): boolean {
