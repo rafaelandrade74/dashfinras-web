@@ -144,7 +144,7 @@ export class PainelCriar {
 
       if (emailsComFalha.length > 0) {
         this.avisoConvites.set(
-          `O painel foi criado, mas houve um problema ao enviar o convite para: ${emailsComFalha.join(', ')}. Reenvie pela aba "Convites enviados" na tela do painel.`
+          `O painel foi criado, mas houve um problema ao enviar o convite para: ${emailsComFalha.join(', ')}. Reenvie pelo botão "Usuários" na tela do painel.`
         );
         return;
       }

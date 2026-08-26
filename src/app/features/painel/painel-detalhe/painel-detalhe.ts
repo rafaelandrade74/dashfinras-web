@@ -3,10 +3,14 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
+import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
 import { Erro } from '../../../core/models/erro.model';
+import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface NavItem {
   icone: string;
@@ -67,6 +71,13 @@ export class PainelDetalhe implements OnInit {
   readonly excluindo = signal(false);
   readonly erroExcluir = signal<string | undefined>(undefined);
 
+  readonly usuariosAberto = signal(false);
+  readonly adicionandoUsuario = signal(false);
+  readonly erroAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly avisoAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly adicionarUsuarioForm: FormGroup;
+  readonly papeis = PAPEIS_CONVITE;
+
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
@@ -78,12 +89,17 @@ export class PainelDetalhe implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly painelService: PainelService,
+    private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
     private readonly fb: FormBuilder
   ) {
     this.renomearForm = this.fb.group({
       nome: ['', Validators.required]
+    });
+    this.adicionarUsuarioForm = this.fb.group({
+      email: [''],
+      permissao: [PainelPermissao.Membro]
     });
   }
 
@@ -232,6 +248,102 @@ export class PainelDetalhe implements OnInit {
         this.erroExcluir.set(erros[0]?.descricao ?? 'Não foi possível excluir o painel. Tente novamente.');
       }
     });
+  }
+
+  abrirUsuarios(): void {
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+    this.adicionarUsuarioForm.reset({ email: '', permissao: PainelPermissao.Membro });
+    this.usuariosAberto.set(true);
+  }
+
+  fecharUsuarios(): void {
+    if (this.adicionandoUsuario()) {
+      return;
+    }
+    this.usuariosAberto.set(false);
+  }
+
+  ehUsuarioLogado(usuarioId: string): boolean {
+    return usuarioId === this.accountService.usuarioAtual?.id;
+  }
+
+  papelInfo(permissao: PainelPermissao): { label: string; classe: string } {
+    return PAPEL_INFO[permissao];
+  }
+
+  adicionarUsuario(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    const email = (this.adicionarUsuarioForm.value.email ?? '').trim().toLowerCase();
+    const permissao = this.adicionarUsuarioForm.value.permissao as PainelPermissao;
+
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+
+    if (!EMAIL_REGEX.test(email)) {
+      this.erroAdicionarUsuario.set('Informe um e-mail válido.');
+      return;
+    }
+
+    const emailUsuarioAtual = this.accountService.usuarioAtual?.email?.trim().toLowerCase();
+    if (emailUsuarioAtual && email === emailUsuarioAtual) {
+      this.erroAdicionarUsuario.set('Você não pode se adicionar.');
+      return;
+    }
+
+    const jaEhMembro = painel.usuarios?.some((u) => u.email?.trim().toLowerCase() === email);
+    if (jaEhMembro) {
+      this.erroAdicionarUsuario.set('Este e-mail já é membro do painel.');
+      return;
+    }
+
+    this.adicionandoUsuario.set(true);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email,
+        permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .subscribe({
+        next: () => {
+          this.painelService.obterPainel(painel.id).subscribe({
+            next: (painelAtualizado) => {
+              this.painel.set(painelAtualizado);
+              this.adicionandoUsuario.set(false);
+
+              const agoraEhMembro = painelAtualizado.usuarios?.some(
+                (u) => u.email?.trim().toLowerCase() === email
+              );
+              if (agoraEhMembro) {
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              } else {
+                this.avisoAdicionarUsuario.set(
+                  `Convite enviado para ${email}. A pessoa entra no painel assim que aceitar.`
+                );
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              }
+            },
+            error: () => {
+              this.adicionandoUsuario.set(false);
+              this.avisoAdicionarUsuario.set(
+                `Convite enviado para ${email}, mas não foi possível atualizar a lista agora. Feche e reabra o modal para ver o resultado.`
+              );
+            }
+          });
+        },
+        error: (error) => {
+          this.adicionandoUsuario.set(false);
+          const erros = (error?.error ?? []) as Erro[];
+          this.erroAdicionarUsuario.set(
+            erros[0]?.descricao ?? 'Não foi possível adicionar esse usuário. Tente novamente.'
+          );
+        }
+      });
   }
 
   irPara(item: NavItem): void {
