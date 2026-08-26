@@ -66,7 +66,7 @@
               <i class="ti ti-edit" aria-hidden="true"></i>
               Renomear
             </button>
-            <button type="button" class="btn-secundario">
+            <button type="button" class="btn-secundario" (click)="abrirUsuarios()">
               <i class="ti ti-users" aria-hidden="true"></i>
               Usuários
             </button>
@@ -240,6 +240,160 @@
             }
             Excluir painel
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (usuariosAberto()) {
+    <div class="backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <div>
+            <h1>Usuários do painel</h1>
+            <div class="modal-sub">{{ painel()?.nome }} · quem pode ver e editar este painel.</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharUsuarios()">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="invite-row" [formGroup]="adicionarUsuarioForm">
+            <div class="field">
+              <label for="usuario-email">E-mail</label>
+              <input
+                id="usuario-email"
+                type="email"
+                formControlName="email"
+                placeholder="nome@exemplo.com"
+                autocomplete="off"
+                (keydown.enter)="$event.preventDefault(); adicionarUsuario()"
+              />
+            </div>
+            <div class="field">
+              <label for="usuario-papel">Papel</label>
+              <select id="usuario-papel" formControlName="permissao">
+                @for (papel of papeis; track papel.valor) {
+                  <option [ngValue]="papel.valor">{{ papel.label }}</option>
+                }
+              </select>
+            </div>
+            <button
+              type="button"
+              class="btn-icon-add"
+              aria-label="Adicionar"
+              [disabled]="adicionandoUsuario()"
+              (click)="adicionarUsuario()"
+            >
+              @if (adicionandoUsuario()) {
+                <span class="spinner" aria-hidden="true"></span>
+              } @else {
+                <i class="ti ti-plus" aria-hidden="true"></i>
+              }
+            </button>
+          </div>
+
+          @if (erroAdicionarUsuario()) {
+            <div class="field-error" role="alert">
+              <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ erroAdicionarUsuario() }}
+            </div>
+          }
+          @if (avisoAdicionarUsuario()) {
+            <div class="field-error field-info" role="status">
+              <i class="ti ti-info-circle" aria-hidden="true"></i> {{ avisoAdicionarUsuario() }}
+            </div>
+          }
+
+          <div class="hint-note">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            <span>Se o e-mail já tiver conta, a pessoa entra direto no painel. Se não, ela recebe um convite por e-mail para se cadastrar.</span>
+          </div>
+
+          <div class="tab-row">
+            <button type="button" class="tab" [class.active]="usuariosAba() === 'usuarios'" (click)="abrirAbaModal('usuarios')">
+              Usuários
+            </button>
+            <button type="button" class="tab" [class.active]="usuariosAba() === 'convites'" (click)="abrirAbaModal('convites')">
+              Convites enviados
+            </button>
+          </div>
+
+          @if (usuariosAba() === 'usuarios') {
+            <div class="section-label">
+              <span class="title">Usuários</span>
+              <span class="count">{{ painel()?.usuarios?.length ?? 0 }} usuário{{ (painel()?.usuarios?.length ?? 0) === 1 ? '' : 's' }}</span>
+            </div>
+
+            <div class="user-list">
+              @for (usuario of painel()?.usuarios; track usuario.id) {
+                <div class="user-row">
+                  <div class="avatar avatar-teal">{{ iniciaisUsuario(usuario.firstName, usuario.lastName) }}</div>
+                  <div class="who">
+                    <div class="nome">
+                      {{ usuario.firstName }} {{ usuario.lastName }}
+                      @if (ehUsuarioLogado(usuario.id)) {
+                        <span class="voce">(você)</span>
+                      }
+                    </div>
+                    <div class="email">{{ usuario.email }}</div>
+                  </div>
+                  @if (usuario.idPermissao !== undefined) {
+                    <span class="badge" [ngClass]="papelInfo(usuario.idPermissao).classe">
+                      <i class="badge-dot"></i>{{ papelInfo(usuario.idPermissao).label }}
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            @if (carregandoConvites()) {
+              <div class="loading-state">
+                <mat-spinner diameter="28"></mat-spinner>
+              </div>
+            } @else if (erroConvites()) {
+              <div class="field-error" role="alert">
+                <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ erroConvites() }}
+              </div>
+            } @else if (convites().length === 0) {
+              <div class="empty-pane">
+                <i class="ti ti-mail" aria-hidden="true"></i>
+                <p>Nenhum convite enviado ainda.</p>
+              </div>
+            } @else {
+              <div class="invite-list">
+                @for (convite of convites(); track convite.id) {
+                  <div class="invite-row-item">
+                    <div class="avatar avatar-ink">{{ (convite.emailConvidado ?? '?').charAt(0).toUpperCase() }}</div>
+                    <div class="who">
+                      <div class="email">{{ convite.emailConvidado }}</div>
+                      <div class="date">Enviado em {{ convite.dataCriacao | date: 'dd/MM/yyyy' }} · {{ papelInfo(convite.permissao).label }}</div>
+                    </div>
+                    <span class="status-pill" [ngClass]="statusInfo(convite.status).classe">
+                      <span class="dot"></span>{{ statusInfo(convite.status).label }}
+                    </span>
+                    @if (podeReenviar(convite.status)) {
+                      <button
+                        type="button"
+                        class="btn-secundario btn-reenviar"
+                        [disabled]="reenviandoConviteId() === convite.id"
+                        (click)="reenviarConvite(convite)"
+                      >
+                        @if (reenviandoConviteId() === convite.id) {
+                          <span class="spinner" aria-hidden="true"></span>
+                        }
+                        Reenviar
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn-primario" (click)="fecharUsuarios()">Concluído</button>
         </div>
       </div>
     </div>

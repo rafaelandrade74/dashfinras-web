@@ -3,10 +3,15 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
+import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import { Erro } from '../../../core/models/erro.model';
+import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface NavItem {
   icone: string;
@@ -29,6 +34,15 @@ const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Administrador]: { label: 'Adm', classe: 'badge-adm' },
   [PainelPermissao.Membro]: { label: 'Membro', classe: 'badge-membro' },
   [PainelPermissao.Visualizador]: { label: 'Visualizador', classe: 'badge-visualizador' },
+};
+
+const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
+  [StatusConvite.PendenteCadastro]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.PendenteAprovacao]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.Concluido]: { label: 'Aceito', classe: 'status-aceito' },
+  [StatusConvite.Recusado]: { label: 'Recusado', classe: 'status-recusado' },
+  [StatusConvite.Expirado]: { label: 'Expirado', classe: 'status-expirado' },
+  [StatusConvite.Invalidado]: { label: 'Invalidado', classe: 'status-expirado' },
 };
 
 const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
@@ -67,6 +81,20 @@ export class PainelDetalhe implements OnInit {
   readonly excluindo = signal(false);
   readonly erroExcluir = signal<string | undefined>(undefined);
 
+  readonly usuariosAberto = signal(false);
+  readonly adicionandoUsuario = signal(false);
+  readonly erroAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly avisoAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly adicionarUsuarioForm: FormGroup;
+  readonly papeis = PAPEIS_CONVITE;
+
+  readonly usuariosAba = signal<'usuarios' | 'convites'>('usuarios');
+  readonly convites = signal<ResponseConviteDto[]>([]);
+  readonly convitesCarregados = signal(false);
+  readonly carregandoConvites = signal(false);
+  readonly erroConvites = signal<string | undefined>(undefined);
+  readonly reenviandoConviteId = signal<string | undefined>(undefined);
+
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
     { icone: 'ti-arrows-exchange', label: 'Transações' },
@@ -78,12 +106,17 @@ export class PainelDetalhe implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly painelService: PainelService,
+    private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
     private readonly fb: FormBuilder
   ) {
     this.renomearForm = this.fb.group({
       nome: ['', Validators.required]
+    });
+    this.adicionarUsuarioForm = this.fb.group({
+      email: [''],
+      permissao: [PainelPermissao.Membro]
     });
   }
 
@@ -232,6 +265,165 @@ export class PainelDetalhe implements OnInit {
         this.erroExcluir.set(erros[0]?.descricao ?? 'Não foi possível excluir o painel. Tente novamente.');
       }
     });
+  }
+
+  abrirUsuarios(): void {
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+    this.adicionarUsuarioForm.reset({ email: '', permissao: PainelPermissao.Membro });
+    this.usuariosAberto.set(true);
+  }
+
+  fecharUsuarios(): void {
+    if (this.adicionandoUsuario()) {
+      return;
+    }
+    this.usuariosAberto.set(false);
+    this.usuariosAba.set('usuarios');
+  }
+
+  abrirAbaModal(aba: 'usuarios' | 'convites'): void {
+    this.usuariosAba.set(aba);
+    if (aba === 'convites' && !this.convitesCarregados()) {
+      this.carregarConvites();
+    }
+  }
+
+  private carregarConvites(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.carregandoConvites.set(true);
+    this.erroConvites.set(undefined);
+
+    this.conviteService.listarConvites(painel.id).subscribe({
+      next: (resposta) => {
+        this.convites.set(resposta.convites ?? []);
+        this.convitesCarregados.set(true);
+        this.carregandoConvites.set(false);
+      },
+      error: () => {
+        this.erroConvites.set('Não foi possível carregar os convites enviados.');
+        this.carregandoConvites.set(false);
+      }
+    });
+  }
+
+  statusInfo(status: StatusConvite): { label: string; classe: string } {
+    return STATUS_INFO[status];
+  }
+
+  podeReenviar(status: StatusConvite): boolean {
+    return status === StatusConvite.Recusado
+      || status === StatusConvite.Expirado
+      || status === StatusConvite.Invalidado;
+  }
+
+  reenviarConvite(convite: ResponseConviteDto): void {
+    const painel = this.painel();
+    if (!painel || !convite.emailConvidado) {
+      return;
+    }
+
+    this.reenviandoConviteId.set(convite.id);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email: convite.emailConvidado,
+        permissao: convite.permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .pipe(finalize(() => this.reenviandoConviteId.set(undefined)))
+      .subscribe({
+        next: () => this.carregarConvites(),
+        error: () => {
+          this.erroConvites.set('Não foi possível reenviar o convite. Tente novamente.');
+        }
+      });
+  }
+
+  ehUsuarioLogado(usuarioId: string): boolean {
+    return usuarioId === this.accountService.usuarioAtual?.id;
+  }
+
+  papelInfo(permissao: PainelPermissao): { label: string; classe: string } {
+    return PAPEL_INFO[permissao];
+  }
+
+  adicionarUsuario(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    const email = (this.adicionarUsuarioForm.value.email ?? '').trim().toLowerCase();
+    const permissao = this.adicionarUsuarioForm.value.permissao as PainelPermissao;
+
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+
+    if (!EMAIL_REGEX.test(email)) {
+      this.erroAdicionarUsuario.set('Informe um e-mail válido.');
+      return;
+    }
+
+    const emailUsuarioAtual = this.accountService.usuarioAtual?.email?.trim().toLowerCase();
+    if (emailUsuarioAtual && email === emailUsuarioAtual) {
+      this.erroAdicionarUsuario.set('Você não pode se adicionar.');
+      return;
+    }
+
+    const jaEhMembro = painel.usuarios?.some((u) => u.email?.trim().toLowerCase() === email);
+    if (jaEhMembro) {
+      this.erroAdicionarUsuario.set('Este e-mail já é membro do painel.');
+      return;
+    }
+
+    this.adicionandoUsuario.set(true);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email,
+        permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .subscribe({
+        next: () => {
+          this.painelService.obterPainel(painel.id).subscribe({
+            next: (painelAtualizado) => {
+              this.painel.set(painelAtualizado);
+              this.adicionandoUsuario.set(false);
+
+              const agoraEhMembro = painelAtualizado.usuarios?.some(
+                (u) => u.email?.trim().toLowerCase() === email
+              );
+              if (agoraEhMembro) {
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              } else {
+                this.avisoAdicionarUsuario.set(
+                  `Convite enviado para ${email}. A pessoa entra no painel assim que aceitar.`
+                );
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              }
+            },
+            error: () => {
+              this.adicionandoUsuario.set(false);
+              this.avisoAdicionarUsuario.set(
+                `Convite enviado para ${email}, mas não foi possível atualizar a lista agora. Feche e reabra o modal para ver o resultado.`
+              );
+            }
+          });
+        },
+        error: (error) => {
+          this.adicionandoUsuario.set(false);
+          const erros = (error?.error ?? []) as Erro[];
+          this.erroAdicionarUsuario.set(
+            erros[0]?.descricao ?? 'Não foi possível adicionar esse usuário. Tente novamente.'
+          );
+        }
+      });
   }
 
   irPara(item: NavItem): void {
