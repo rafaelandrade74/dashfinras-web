@@ -1,0 +1,69 @@
+<div class="backdrop">
+  <div class="page-frame">
+    <div class="page-brand"><span class="dot"></span> DashFinRas</div>
+
+    @if (carregando()) {
+      <div class="page-content">
+        <span class="spinner" aria-hidden="true"></span>
+      </div>
+    } @else if (erro()) {
+      <div class="page-content">
+        <div class="invite-icon invite-icon-neutro">
+          <i class="ti ti-alert-circle" aria-hidden="true"></i>
+        </div>
+        <h2>{{ erroTitulo() }}</h2>
+        <p class="lede">{{ erro() }}</p>
+      </div>
+    } @else if (decisao() === 'aceito') {
+      <div class="decision-state accepted">
+        <div class="state-icon">
+          <i class="ti ti-check" aria-hidden="true"></i>
+        </div>
+        <h2>Convite aceito</h2>
+        <p>Você agora faz parte do painel <strong>{{ convite()?.nomePainel }}</strong> como {{ papelLabel(convite()!.permissao) }}.</p>
+        <button type="button" class="btn-primario" (click)="irParaPainel()">Ir para o painel</button>
+      </div>
+    } @else if (decisao() === 'recusado') {
+      <div class="decision-state declined">
+        <div class="state-icon">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </div>
+        <h2>Convite recusado</h2>
+        <p>Tudo bem — nada muda. Você pode fechar esta página.</p>
+      </div>
+    } @else if (convite(); as c) {
+      <div class="page-content">
+        <div class="invite-icon">
+          <i class="ti ti-mail" aria-hidden="true"></i>
+        </div>
+        <h2>Você foi convidado</h2>
+        <p class="lede">
+          Você foi convidado para participar do painel <strong>{{ c.nomePainel }}</strong> no DashFinRas.
+        </p>
+        <div class="role-pill">
+          <i class="ti ti-shield-check" aria-hidden="true"></i>
+          Papel: {{ papelLabel(c.permissao) }}
+        </div>
+
+        @if (erroResposta()) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ erroResposta() }}</span>
+          </div>
+        }
+
+        <div class="page-actions">
+          <button type="button" class="btn-secundario" [disabled]="respondendo()" (click)="recusar()">
+            Recusar
+          </button>
+          <button type="button" class="btn-primario" [disabled]="respondendo()" (click)="aceitar()">
+            @if (respondendo()) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            Aceitar convite
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
