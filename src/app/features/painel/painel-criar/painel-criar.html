@@ -74,7 +74,7 @@
               <label for="convite-papel">Papel</label>
               <select id="convite-papel" formControlName="permissao">
                 @for (papel of papeis; track papel.valor) {
-                  <option [value]="papel.valor">{{ papel.label }}</option>
+                  <option [ngValue]="papel.valor">{{ papel.label }}</option>
                 }
               </select>
             </div>
