@@ -22,20 +22,17 @@ function criarApp(overrides?: {
     ...overrides?.supabaseAdmin?.auth,
   };
 
-  const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-
   const app: Express = createApiApp({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabaseAdmin: { auth } as any,
-    fetchFn,
   });
 
-  return { app, auth, fetchFn };
+  return { app, auth };
 }
 
 describe('POST /api/auth/login', () => {
-  it('seta o cookie df_session e chama a API .NET com Authorization: Bearer quando as credenciais são válidas', async () => {
-    const { app, auth, fetchFn } = criarApp();
+  it('seta o cookie df_session quando as credenciais são válidas, sem chamar a API .NET', async () => {
+    const { app, auth } = criarApp();
     auth.signInWithPassword.mockResolvedValue({
       data: { session: { access_token: ACCESS_TOKEN, refresh_token: REFRESH_TOKEN } },
       error: null,
@@ -47,12 +44,6 @@ describe('POST /api/auth/login', () => {
 
     expect(resposta.status).toBe(200);
     expect(resposta.headers['set-cookie']?.[0]).toContain('df_session=');
-    expect(fetchFn).toHaveBeenCalledWith(
-      'https://api.test.local/api/account/login',
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: `Bearer ${ACCESS_TOKEN}` }),
-      }),
-    );
   });
 
   it('responde 401 sem setar cookie quando as credenciais são inválidas', async () => {
@@ -107,8 +98,8 @@ describe('GET /api/auth/session', () => {
 });
 
 describe('POST /api/auth/logout', () => {
-  it('limpa o cookie mesmo se a chamada à API .NET falhar', async () => {
-    const { app, auth, fetchFn } = criarApp();
+  it('limpa o cookie mesmo se o signOut do Supabase falhar', async () => {
+    const { app, auth } = criarApp();
     auth.signInWithPassword.mockResolvedValue({
       data: { session: { access_token: ACCESS_TOKEN, refresh_token: REFRESH_TOKEN } },
       error: null,
@@ -119,7 +110,7 @@ describe('POST /api/auth/logout', () => {
       .send({ email: 'rafael@exemplo.com', password: 'senha123' });
     const cookie = loginRes.headers['set-cookie'];
 
-    fetchFn.mockRejectedValue(new Error('API fora do ar'));
+    auth.signOut.mockRejectedValue(new Error('Supabase fora do ar'));
 
     const respostaLogout = await request(app).post('/api/auth/logout').set('Cookie', cookie);
     expect(respostaLogout.status).toBe(200);
@@ -133,12 +124,11 @@ describe('POST /api/auth/logout', () => {
 });
 
 describe('proxy /api/*', () => {
-  it('responde 401 direto, sem chamar a API .NET, quando não há cookie válido', async () => {
-    const { app, fetchFn } = criarApp();
+  it('responde 401 direto quando não há cookie válido', async () => {
+    const { app } = criarApp();
 
     const resposta = await request(app).get('/api/account');
 
     expect(resposta.status).toBe(401);
-    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
