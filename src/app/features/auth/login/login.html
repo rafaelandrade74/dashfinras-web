@@ -11,7 +11,14 @@
 
   <main class="stage">
     <div class="card" role="main">
-      @if (modo() === 'login') {
+      @if (checandoSessao()) {
+        <div class="card-body" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <span>Verificando sessão…</span>
+        </div>
+      }
+
+      @if (!checandoSessao() && modo() === 'login') {
         <div class="card-body">
           <p class="eyebrow">Acesso à conta</p>
           <h1 class="heading">Bem-vindo de volta</h1>

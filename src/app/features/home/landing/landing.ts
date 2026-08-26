@@ -1,4 +1,13 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, QueryList, ViewChildren } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  QueryList,
+  signal,
+  ViewChildren
+} from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -7,22 +16,29 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './landing.scss',
   templateUrl: './landing.html',
 })
-export class Landing implements AfterViewInit, OnDestroy {
+export class Landing implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('folioRow') private readonly folioRows!: QueryList<ElementRef<HTMLElement>>;
   private observer?: IntersectionObserver;
 
+  private readonly sessaoConfirmada = signal(false);
+
   constructor(protected readonly authService: AuthService) {}
 
+  async ngOnInit(): Promise<void> {
+    await this.authService.waitUntilReady();
+    this.sessaoConfirmada.set(this.authService.isAuthenticated);
+  }
+
   get ctaLink(): string {
-    return this.authService.isAuthenticated ? '/paineis' : '/login';
+    return this.sessaoConfirmada() ? '/paineis' : '/login';
   }
 
   get ctaLabel(): string {
-    return this.authService.isAuthenticated ? 'Ir para meus painéis' : 'Criar meu painel';
+    return this.sessaoConfirmada() ? 'Ir para meus painéis' : 'Criar meu painel';
   }
 
   get navCtaLabel(): string {
-    return this.authService.isAuthenticated ? 'Meus painéis' : 'Entrar';
+    return this.sessaoConfirmada() ? 'Meus painéis' : 'Entrar';
   }
 
   ngAfterViewInit(): void {

@@ -1,8 +1,9 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { isInternalRedirectUrl } from './internal-url';
 import {
   avaliarCriteriosSenha,
   passwordComplexityValidator,
@@ -19,8 +20,9 @@ type Modo = 'login' | 'signup' | 'signup-sent' | 'forgot' | 'forgot-sent';
   styleUrl: './login.scss',
   templateUrl: './login.html',
 })
-export class Login {
+export class Login implements OnInit {
   readonly modo = signal<Modo>('login');
+  readonly checandoSessao = signal(true);
   readonly carregando = signal(false);
   readonly mensagemErro = signal<string | undefined>(undefined);
   readonly emailRecuperacao = signal('');
@@ -94,13 +96,25 @@ export class Login {
     });
   }
 
+  async ngOnInit(): Promise<void> {
+    await this.authService.waitUntilReady();
+
+    if (this.authService.isAuthenticated) {
+      this.router.navigateByUrl(this.redirectUrl);
+      return;
+    }
+
+    this.checandoSessao.set(false);
+  }
+
   irPara(modo: Modo): void {
     this.modo.set(modo);
     this.mensagemErro.set(undefined);
   }
 
   private get redirectUrl(): string {
-    return this.route.snapshot.queryParamMap.get('redirectUrl') ?? '/paineis';
+    const valor = this.route.snapshot.queryParamMap.get('redirectUrl');
+    return isInternalRedirectUrl(valor) ? valor! : '/paineis';
   }
 
   entrar(): void {
