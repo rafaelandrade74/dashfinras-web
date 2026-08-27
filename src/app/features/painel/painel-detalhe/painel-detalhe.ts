@@ -37,13 +37,13 @@ const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
 };
 
 const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
-  [StatusConvite.PendenteCadastro]: { label: 'Pendente', classe: 'status-pendente' },
-  [StatusConvite.PendenteAprovacao]: { label: 'Pendente', classe: 'status-pendente' },
-  [StatusConvite.Concluido]: { label: 'Aceito', classe: 'status-aceito' },
+  [StatusConvite.Pendente]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.Aprovado]: { label: 'Aprovado', classe: 'status-aceito' },
   [StatusConvite.Recusado]: { label: 'Recusado', classe: 'status-recusado' },
   [StatusConvite.Expirado]: { label: 'Expirado', classe: 'status-expirado' },
-  [StatusConvite.Invalidado]: { label: 'Invalidado', classe: 'status-expirado' },
 };
+
+const STATUS_DESCONHECIDO = { label: 'Status desconhecido', classe: 'status-desconhecido' };
 
 const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
   { descricao: 'Salário', autor: 'Você', categoria: 'Renda', data: '2026-08-05', valor: 6500 },
@@ -312,13 +312,11 @@ export class PainelDetalhe implements OnInit {
   }
 
   statusInfo(status: StatusConvite): { label: string; classe: string } {
-    return STATUS_INFO[status];
+    return STATUS_INFO[status] ?? STATUS_DESCONHECIDO;
   }
 
   podeReenviar(status: StatusConvite): boolean {
-    return status === StatusConvite.Recusado
-      || status === StatusConvite.Expirado
-      || status === StatusConvite.Invalidado;
+    return status === StatusConvite.Recusado || status === StatusConvite.Expirado;
   }
 
   reenviarConvite(convite: ResponseConviteDto): void {

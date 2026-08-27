@@ -1,12 +1,10 @@
 import { PainelPermissao } from './painel.model';
 
 export enum StatusConvite {
-  PendenteCadastro = 0,
-  PendenteAprovacao = 1,
-  Concluido = 2,
-  Recusado = 3,
-  Expirado = 4,
-  Invalidado = 5
+  Pendente = 0,
+  Aprovado = 1,
+  Recusado = 2,
+  Expirado = 3
 }
 
 export interface RequestCriarConviteDto {
