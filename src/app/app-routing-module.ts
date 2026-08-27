@@ -20,6 +20,7 @@ const routes: Routes = [
   },
   {
     path: 'convites/:token',
+    canActivate: [authGuard, accountGuard],
     loadChildren: () => import('./features/convite/convite-module').then(m => m.ConviteModule)
   },
   {
