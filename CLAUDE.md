@@ -49,11 +49,22 @@ npm test          # ng test (vitest via @angular/build:unit-test)
 
 ### Module/routing structure
 
-`AppRoutingModule` (`src/app/app-routing-module.ts`) lazy-loads three feature modules by path:
+`AppRoutingModule` (`src/app/app-routing-module.ts`) lazy-loads four feature modules by path:
 
 - `/login` → `AuthModule` — email/password login, sign-up, and password-recovery screen, no guards.
 - `/completar-cadastro` → `CadastroModule`, guarded by `authGuard` only.
+- `/convites/:token` → `ConviteModule` (public invite decision screen), guarded by `authGuard` then
+  `accountGuard` — an unauthenticated or not-yet-registered visitor is bounced through login/cadastro
+  and lands back on the same invite token via `redirectUrl` before ever seeing the invite.
 - `/paineis` (default redirect target) → `PainelModule`, guarded by `authGuard` then `accountGuard`.
+
+Invite link/response URL contract (frontend ⇄ `api-dashfinras`): when creating an invite,
+`ConviteService.criarConvite` sends `urlFrontend: `${window.location.origin}/convites`` (no
+token — see `painel-criar.ts`/`painel-detalhe.ts`); the API appends `/{token}` to build the link
+it emails to the invitee, which is exactly this app's guarded `/convites/:token` route. Once on
+that screen, `ConviteResponder` accepts/declines via `POST /api/convites/{token}/aprovar` and
+`POST /api/convites/{token}/recusar` (`ConviteService.aprovarConvite`/`recusarConvite`) — same
+token, no separate confirmation URL.
 
 Route guard order matters: `authGuard` (`core/guards/auth.guard.ts`) awaits `AuthService`'s Supabase
 session check and redirects to `/login?redirectUrl=...` if unauthenticated. `accountGuard`

@@ -2,7 +2,6 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { ConviteService } from '../../../core/services/convite.service';
-import { AuthService } from '../../../core/services/auth.service';
 import { PainelPermissao } from '../../../core/models/painel.model';
 import { ResponseConviteDto } from '../../../core/models/convite.model';
 import { Erro } from '../../../core/models/erro.model';
@@ -37,8 +36,7 @@ export class ConviteResponder implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly conviteService: ConviteService,
-    private readonly authService: AuthService
+    private readonly conviteService: ConviteService
   ) {}
 
   ngOnInit(): void {
@@ -102,22 +100,15 @@ export class ConviteResponder implements OnInit {
     return PAPEL_LABEL[permissao];
   }
 
-  async aceitar(): Promise<void> {
-    await this.responder(() => this.conviteService.aprovarConvite(this.token), 'aceito');
+  aceitar(): void {
+    this.responder(() => this.conviteService.aprovarConvite(this.token), 'aceito');
   }
 
-  async recusar(): Promise<void> {
-    await this.responder(() => this.conviteService.recusarConvite(this.token), 'recusado');
+  recusar(): void {
+    this.responder(() => this.conviteService.recusarConvite(this.token), 'recusado');
   }
 
-  private async responder(chamada: () => Observable<ResponseConviteDto>, resultado: Decisao): Promise<void> {
-    await this.authService.waitUntilReady();
-
-    if (!this.authService.isAuthenticated) {
-      this.router.navigateByUrl(`/login?redirectUrl=${encodeURIComponent(this.router.url)}`);
-      return;
-    }
-
+  private responder(chamada: () => Observable<ResponseConviteDto>, resultado: Decisao): void {
     this.respondendo.set(true);
     this.erroResposta.set(undefined);
 
