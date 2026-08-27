@@ -337,11 +337,54 @@
                       }
                     </div>
                     <div class="email">{{ usuario.email }}</div>
+                    @if (errosAlterarPapel()[usuario.id]) {
+                      <div class="field-error" role="alert">
+                        <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ errosAlterarPapel()[usuario.id] }}
+                      </div>
+                    }
                   </div>
-                  @if (usuario.idPermissao !== undefined) {
-                    <span class="badge" [ngClass]="papelInfo(usuario.idPermissao).classe">
-                      <i class="badge-dot"></i>{{ papelInfo(usuario.idPermissao).label }}
-                    </span>
+
+                  @if (ehDono(usuario.idPermissao)) {
+                    @if (usuario.idPermissao !== undefined) {
+                      <span class="badge" [ngClass]="papelInfo(usuario.idPermissao).classe">
+                        <i class="badge-dot"></i>{{ papelInfo(usuario.idPermissao).label }}
+                      </span>
+                    }
+                  } @else if (ehUsuarioLogado(usuario.id)) {
+                    @if (usuario.idPermissao !== undefined) {
+                      <span class="badge" [ngClass]="papelInfo(usuario.idPermissao).classe">
+                        <i class="badge-dot"></i>{{ papelInfo(usuario.idPermissao).label }}
+                      </span>
+                    }
+                    <button
+                      type="button"
+                      class="btn-icon-danger"
+                      aria-label="Sair do painel"
+                      [disabled]="removendoUsuarioId() === usuario.id || salvandoAlteracoes()"
+                      (click)="abrirRemoverUsuario(usuario)"
+                    >
+                      <i class="ti ti-logout" aria-hidden="true"></i>
+                    </button>
+                  } @else {
+                    <select
+                      class="papel-select"
+                      [attr.aria-label]="'Papel de ' + usuario.firstName"
+                      [disabled]="salvandoAlteracoes() || removendoUsuarioId() === usuario.id"
+                      (change)="definirPapelPendente(usuario, +$any($event.target).value)"
+                    >
+                      @for (papel of papeis; track papel.valor) {
+                        <option [value]="papel.valor" [selected]="papel.valor === papelExibido(usuario)">{{ papel.label }}</option>
+                      }
+                    </select>
+                    <button
+                      type="button"
+                      class="btn-icon-danger"
+                      aria-label="Remover usuário"
+                      [disabled]="removendoUsuarioId() === usuario.id || salvandoAlteracoes()"
+                      (click)="abrirRemoverUsuario(usuario)"
+                    >
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    </button>
                   }
                 </div>
               }
@@ -393,7 +436,76 @@
         </div>
 
         <div class="modal-foot">
-          <button type="button" class="btn-primario" (click)="fecharUsuarios()">Concluído</button>
+          <button
+            type="button"
+            class="btn-primario"
+            [disabled]="!podeFecharUsuarios()"
+            (click)="concluirUsuarios()"
+          >
+            @if (salvandoAlteracoes()) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            Concluído
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (usuarioParaRemover(); as usuarioAlvo) {
+    <div class="backdrop backdrop-top">
+      <div class="modal">
+        <div class="modal-head">
+          <div>
+            @if (ehUsuarioLogado(usuarioAlvo.id)) {
+              <h1>Sair do painel</h1>
+              <div class="modal-sub">Você perderá o acesso a este painel imediatamente.</div>
+            } @else {
+              <h1>Remover usuário</h1>
+              <div class="modal-sub">Esta ação não pode ser desfeita.</div>
+            }
+          </div>
+          <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharRemoverUsuario()">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          @if (ehUsuarioLogado(usuarioAlvo.id)) {
+            <p>Tem certeza que deseja sair do painel <strong>{{ painel()?.nome }}</strong>?</p>
+          } @else {
+            <p>
+              Tem certeza que deseja remover
+              <strong>{{ usuarioAlvo.firstName }} {{ usuarioAlvo.lastName }}</strong>
+              do painel <strong>{{ painel()?.nome }}</strong>?
+            </p>
+          }
+
+          @if (erroRemoverUsuario()) {
+            <div class="api-error" role="alert">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+              <span>{{ erroRemoverUsuario() }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn-secundario" (click)="fecharRemoverUsuario()">Cancelar</button>
+          <button
+            type="button"
+            class="btn-perigo"
+            [disabled]="removendoUsuarioId() === usuarioAlvo.id"
+            (click)="confirmarRemoverUsuario()"
+          >
+            @if (removendoUsuarioId() === usuarioAlvo.id) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            @if (ehUsuarioLogado(usuarioAlvo.id)) {
+              Sair do painel
+            } @else {
+              Remover usuário
+            }
+          </button>
         </div>
       </div>
     </div>

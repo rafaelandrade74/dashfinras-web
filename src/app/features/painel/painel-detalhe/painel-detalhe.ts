@@ -1,12 +1,12 @@
 import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, concat, finalize, of, tap } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
 import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import { Erro } from '../../../core/models/erro.model';
 import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
@@ -94,6 +94,14 @@ export class PainelDetalhe implements OnInit {
   readonly carregandoConvites = signal(false);
   readonly erroConvites = signal<string | undefined>(undefined);
   readonly reenviandoConviteId = signal<string | undefined>(undefined);
+
+  readonly usuarioParaRemover = signal<PainelUsuarioDto | undefined>(undefined);
+  readonly removendoUsuarioId = signal<string | undefined>(undefined);
+  readonly erroRemoverUsuario = signal<string | undefined>(undefined);
+
+  readonly papeisPendentes = signal<Record<string, PainelPermissao>>({});
+  readonly salvandoAlteracoes = signal(false);
+  readonly errosAlterarPapel = signal<Record<string, string>>({});
 
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
@@ -271,15 +279,77 @@ export class PainelDetalhe implements OnInit {
     this.erroAdicionarUsuario.set(undefined);
     this.avisoAdicionarUsuario.set(undefined);
     this.adicionarUsuarioForm.reset({ email: '', permissao: PainelPermissao.Membro });
+    this.usuarioParaRemover.set(undefined);
+    this.erroRemoverUsuario.set(undefined);
+    this.papeisPendentes.set({});
+    this.errosAlterarPapel.set({});
     this.usuariosAberto.set(true);
   }
 
+  podeFecharUsuarios(): boolean {
+    return !this.adicionandoUsuario() && !this.removendoUsuarioId() && !this.salvandoAlteracoes();
+  }
+
   fecharUsuarios(): void {
-    if (this.adicionandoUsuario()) {
+    if (!this.podeFecharUsuarios()) {
       return;
     }
+    this.papeisPendentes.set({});
+    this.errosAlterarPapel.set({});
     this.usuariosAberto.set(false);
     this.usuariosAba.set('usuarios');
+  }
+
+  concluirUsuarios(): void {
+    if (!this.podeFecharUsuarios()) {
+      return;
+    }
+
+    const pendentes = this.papeisPendentes();
+    const idsPendentes = Object.keys(pendentes);
+
+    if (idsPendentes.length === 0) {
+      this.usuariosAberto.set(false);
+      this.usuariosAba.set('usuarios');
+      return;
+    }
+
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.salvandoAlteracoes.set(true);
+    const novosErros: Record<string, string> = {};
+
+    const chamadas = idsPendentes.map((idUsuario) =>
+      this.painelService.editarPermissaoUsuarioPainel(painel.id, idUsuario, pendentes[idUsuario]).pipe(
+        tap((painelAtualizado) => this.painel.set(painelAtualizado)),
+        catchError((error) => {
+          const erros = (error?.error ?? []) as Erro[];
+          novosErros[idUsuario] = erros[0]?.descricao ?? 'Não foi possível alterar o papel desse usuário. Tente novamente.';
+          return of(undefined);
+        })
+      )
+    );
+
+    concat(...chamadas).pipe(
+      finalize(() => {
+        this.salvandoAlteracoes.set(false);
+        this.errosAlterarPapel.set(novosErros);
+
+        const pendentesRestantes: Record<string, PainelPermissao> = {};
+        for (const idUsuario of Object.keys(novosErros)) {
+          pendentesRestantes[idUsuario] = pendentes[idUsuario];
+        }
+        this.papeisPendentes.set(pendentesRestantes);
+
+        if (Object.keys(novosErros).length === 0) {
+          this.usuariosAberto.set(false);
+          this.usuariosAba.set('usuarios');
+        }
+      })
+    ).subscribe();
   }
 
   abrirAbaModal(aba: 'usuarios' | 'convites'): void {
@@ -422,6 +492,84 @@ export class PainelDetalhe implements OnInit {
           );
         }
       });
+  }
+
+  ehDono(permissao?: PainelPermissao): boolean {
+    return permissao === PainelPermissao.Dono;
+  }
+
+  abrirRemoverUsuario(usuario: PainelUsuarioDto): void {
+    this.erroRemoverUsuario.set(undefined);
+    this.usuarioParaRemover.set(usuario);
+  }
+
+  fecharRemoverUsuario(): void {
+    if (this.removendoUsuarioId()) {
+      return;
+    }
+    this.usuarioParaRemover.set(undefined);
+  }
+
+  confirmarRemoverUsuario(): void {
+    const painel = this.painel();
+    const usuarioAlvo = this.usuarioParaRemover();
+    if (!painel || !usuarioAlvo) {
+      return;
+    }
+
+    this.removendoUsuarioId.set(usuarioAlvo.id);
+    this.erroRemoverUsuario.set(undefined);
+
+    this.painelService.removerUsuarioPainel(painel.id, usuarioAlvo.id).pipe(
+      finalize(() => this.removendoUsuarioId.set(undefined))
+    ).subscribe({
+      next: (painelAtualizado) => {
+        this.usuarioParaRemover.set(undefined);
+
+        if (this.ehUsuarioLogado(usuarioAlvo.id)) {
+          this.usuariosAberto.set(false);
+          this.router.navigateByUrl('/paineis');
+          return;
+        }
+
+        this.painel.set(painelAtualizado);
+        this.papeisPendentes.update((pendentes) => {
+          const { [usuarioAlvo.id]: _removido, ...resto } = pendentes;
+          return resto;
+        });
+        this.errosAlterarPapel.update((erros) => {
+          const { [usuarioAlvo.id]: _removido, ...resto } = erros;
+          return resto;
+        });
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroRemoverUsuario.set(
+          erros[0]?.descricao ?? 'Não foi possível remover esse usuário. Tente novamente.'
+        );
+      }
+    });
+  }
+
+  papelExibido(usuario: PainelUsuarioDto): PainelPermissao | undefined {
+    return this.papeisPendentes()[usuario.id] ?? usuario.idPermissao;
+  }
+
+  definirPapelPendente(usuario: PainelUsuarioDto, novaPermissao: PainelPermissao): void {
+    this.errosAlterarPapel.update((erros) => {
+      const { [usuario.id]: _removido, ...resto } = erros;
+      return resto;
+    });
+
+    if (novaPermissao === usuario.idPermissao) {
+      this.papeisPendentes.update((pendentes) => {
+        const { [usuario.id]: _removido, ...resto } = pendentes;
+        return resto;
+      });
+      return;
+    }
+
+    this.papeisPendentes.update((pendentes) => ({ ...pendentes, [usuario.id]: novaPermissao }));
   }
 
   irPara(item: NavItem): void {
