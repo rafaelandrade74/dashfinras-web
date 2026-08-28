@@ -5,6 +5,7 @@ import { MovimentacaoFinanceiraService } from './movimentacao-financeira.service
 import {
   AgregacaoFinanceiraDto,
   ResponseMovimentacaoDto,
+  ResponseMovimentacoesFinanceirasDto,
   StatusMovimentacao,
   TipoMovimentacao
 } from '../models/movimentacao-financeira.model';
@@ -152,7 +153,7 @@ describe('MovimentacaoFinanceiraService', () => {
   });
 
   it('consultar envia GET com os filtros informados como query params', () => {
-    let resultado: ResponseMovimentacaoDto[] | undefined;
+    let resultado: ResponseMovimentacoesFinanceirasDto | undefined;
 
     service
       .consultar({ idPainel: 'painel-1', competencia: 202601, status: StatusMovimentacao.Pendente })
@@ -166,9 +167,30 @@ describe('MovimentacaoFinanceiraService', () => {
         r.params.get('status') === String(StatusMovimentacao.Pendente)
     );
     expect(req.request.method).toBe('GET');
-    req.flush({ movimentacoes: [movimentacao] });
+    req.flush({ movimentacoes: [movimentacao], totalRegistros: 1, temProximaPagina: false });
 
-    expect(resultado).toEqual([movimentacao]);
+    expect(resultado).toEqual({ movimentacoes: [movimentacao], totalRegistros: 1, temProximaPagina: false });
+  });
+
+  it('consultar envia pagina e tamanhoPagina quando informados', () => {
+    service.consultar({ idPainel: 'painel-1', pagina: 2, tamanhoPagina: 50 }).subscribe();
+
+    const req = httpMock.expectOne(
+      (r) => r.url === baseUrl && r.params.get('pagina') === '2' && r.params.get('tamanhoPagina') === '50'
+    );
+    req.flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
+  });
+
+  it('consultar repassa totalRegistros/temProximaPagina para o chamador', () => {
+    let resultado: ResponseMovimentacoesFinanceirasDto | undefined;
+
+    service.consultar({ idPainel: 'painel-1' }).subscribe((res) => (resultado = res));
+
+    const req = httpMock.expectOne((r) => r.url === baseUrl);
+    req.flush({ movimentacoes: [movimentacao], totalRegistros: 137, temProximaPagina: true });
+
+    expect(resultado?.totalRegistros).toBe(137);
+    expect(resultado?.temProximaPagina).toBe(true);
   });
 
   it('consultar omite filtros não informados', () => {
@@ -176,7 +198,7 @@ describe('MovimentacaoFinanceiraService', () => {
 
     const req = httpMock.expectOne(baseUrl);
     expect(req.request.params.keys().length).toBe(0);
-    req.flush({ movimentacoes: [] });
+    req.flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
   });
 
   it('consultar propaga erro do servidor', () => {
@@ -190,22 +212,27 @@ describe('MovimentacaoFinanceiraService', () => {
     expect(erro).toBeTruthy();
   });
 
-  it('obterAgregacao envia GET com competencia e idPainel opcional', () => {
+  it('obterAgregacao envia GET com o filtro completo informado', () => {
     let resultado: AgregacaoFinanceiraDto | undefined;
     const agregacao: AgregacaoFinanceiraDto = {
       competencia: 202601,
       totalReceitas: 1000,
       totalDespesas: 400,
-      saldo: 600
+      saldo: 600,
+      quantidadeEntradas: 3,
+      quantidadeSaidas: 5
     };
 
-    service.obterAgregacao(202601, 'painel-1').subscribe((res) => (resultado = res));
+    service
+      .obterAgregacao({ idPainel: 'painel-1', competencia: 202601, idCategoria: 'categoria-1' })
+      .subscribe((res) => (resultado = res));
 
     const req = httpMock.expectOne(
       (r) =>
         r.url === `${baseUrl}/agregacao` &&
         r.params.get('competencia') === '202601' &&
-        r.params.get('idPainel') === 'painel-1'
+        r.params.get('idPainel') === 'painel-1' &&
+        r.params.get('idCategoria') === 'categoria-1'
     );
     expect(req.request.method).toBe('GET');
     req.flush(agregacao);
@@ -213,20 +240,32 @@ describe('MovimentacaoFinanceiraService', () => {
     expect(resultado).toEqual(agregacao);
   });
 
-  it('obterAgregacao omite idPainel quando não informado', () => {
-    service.obterAgregacao(202601).subscribe();
+  it('obterAgregacao funciona sem competência informada (agora opcional)', () => {
+    let resultado: AgregacaoFinanceiraDto | undefined;
+
+    service.obterAgregacao({ idPainel: 'painel-1' }).subscribe((res) => (resultado = res));
 
     const req = httpMock.expectOne(
-      (r) => r.url === `${baseUrl}/agregacao` && r.params.get('competencia') === '202601'
+      (r) => r.url === `${baseUrl}/agregacao` && r.params.get('idPainel') === 'painel-1'
     );
-    expect(req.request.params.has('idPainel')).toBe(false);
-    req.flush({ competencia: 202601, totalReceitas: 0, totalDespesas: 0, saldo: 0 });
+    expect(req.request.params.has('competencia')).toBe(false);
+    req.flush({ competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0 });
+
+    expect(resultado?.competencia).toBeNull();
+  });
+
+  it('obterAgregacao omite filtros não informados', () => {
+    service.obterAgregacao({}).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/agregacao`);
+    expect(req.request.params.keys().length).toBe(0);
+    req.flush({ competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0 });
   });
 
   it('obterAgregacao propaga erro do servidor', () => {
     let erro: unknown;
 
-    service.obterAgregacao(202601).subscribe({ error: (err) => (erro = err) });
+    service.obterAgregacao({ idPainel: 'painel-1' }).subscribe({ error: (err) => (erro = err) });
 
     const req = httpMock.expectOne((r) => r.url === `${baseUrl}/agregacao`);
     req.flush({ message: 'erro' }, { status: 500, statusText: 'Server Error' });

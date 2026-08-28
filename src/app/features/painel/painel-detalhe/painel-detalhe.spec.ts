@@ -168,6 +168,15 @@ describe('PainelDetalhe', () => {
       expect(reqTag.request.params.get('idPainel')).toBe('painel-rota-1');
       reqTag.flush({ tags: [] });
 
+      // /api/painel/... aceita null (só popula um signal, sem acessar campos do corpo);
+      // /api/movimentacao e /api/movimentacao/agregacao precisam do shape real, já que os
+      // handlers leem resposta.movimentacoes/totalRegistros/temProximaPagina.
+      localHttpMock.match((r) => r.url === '/api/movimentacao').forEach((req) =>
+        req.flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false })
+      );
+      localHttpMock.match((r) => r.url === '/api/movimentacao/agregacao').forEach((req) =>
+        req.flush({ competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0 })
+      );
       localHttpMock.match(() => true).forEach((req) => req.flush(null));
     });
   });
@@ -189,7 +198,11 @@ describe('PainelDetalhe', () => {
       const req = httpMock.expectOne((r) => r.url === '/api/movimentacao');
       const [mes, ano] = competenciaAtualEsperada().split('/');
       expect(req.request.params.get('competencia')).toBe(String(Number(ano) * 100 + Number(mes)));
-      req.flush({ movimentacoes: [] });
+      req.flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
+
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush({
+        competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0
+      });
     });
   });
 
@@ -223,7 +236,108 @@ describe('PainelDetalhe', () => {
 
       component.aoRegistrarMovimentacao();
 
-      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({ movimentacoes: [] });
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
+      httpMock.expectOne((req) => req.url === '/api/movimentacao/agregacao').flush({
+        competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0
+      });
+      httpMock.expectOne((req) => req.url === '/api/tag').flush({ tags: [] });
+    });
+  });
+
+  describe('paginação da consulta (008-limite-consulta-movimentacoes)', () => {
+    it('pede tamanhoPagina=200 (máximo) e guarda totalRegistros/temProximaPagina retornados', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado(component.filtro());
+
+      const req = httpMock.expectOne((r) => r.url === '/api/movimentacao');
+      expect(req.request.params.get('tamanhoPagina')).toBe('200');
+      expect(req.request.params.get('pagina')).toBe('1');
+      req.flush({
+        movimentacoes: [{ id: 'm1' }],
+        totalRegistros: 137,
+        temProximaPagina: true
+      });
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush({
+        competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0
+      });
+
+      expect(component.totalRegistrosLancamentos()).toBe(137);
+      expect(component.temMaisLancamentosNoServidor()).toBe(true);
+    });
+
+    it('temMaisLancamentosNoServidor fica false quando a API não indica próxima página', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado(component.filtro());
+
+      httpMock.expectOne((r) => r.url === '/api/movimentacao').flush({
+        movimentacoes: [],
+        totalRegistros: 3,
+        temProximaPagina: false
+      });
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush({
+        competencia: null, totalReceitas: 0, totalDespesas: 0, saldo: 0, quantidadeEntradas: 0, quantidadeSaidas: 0
+      });
+
+      expect(component.temMaisLancamentosNoServidor()).toBe(false);
+    });
+  });
+
+  describe('agregação (009-agregacao-movimentacoes-filtro) alimentando os KPIs', () => {
+    it('usa totalReceitas/totalDespesas/saldo/quantidades da API quando não há filtro de tag', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado({ competencia: '', categoria: undefined, status: undefined, tags: [] });
+
+      httpMock.expectOne((r) => r.url === '/api/movimentacao').flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush({
+        competencia: null,
+        totalReceitas: 5000,
+        totalDespesas: 3200,
+        saldo: 1800,
+        quantidadeEntradas: 12,
+        quantidadeSaidas: 27
+      });
+
+      expect(component.totalEntradas).toBe(5000);
+      expect(component.totalSaidas).toBe(-3200);
+      expect(component.saldo).toBe(1800);
+      expect(component.quantidadeEntradas).toBe(12);
+      expect(component.quantidadeSaidas).toBe(27);
+    });
+
+    it('cai no cálculo local quando há filtro de tag (API não sabe filtrar por tag)', () => {
+      definirPainel([]);
+      const receita = { id: 'r1', tipo: 1, valor: 100, idsTags: ['tag-1'] } as any;
+      const despesa = { id: 'd1', tipo: 0, valor: 40, idsTags: ['tag-1'] } as any;
+      component.lancamentos.set([receita, despesa]);
+      component.aoMovimentacaoAlterada(receita);
+
+      httpMock.expectOne((r) => r.url === '/api/tag').flush({ tags: [{ id: 'tag-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' }] });
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush({
+        competencia: null, totalReceitas: 999, totalDespesas: 999, saldo: 0, quantidadeEntradas: 99, quantidadeSaidas: 99
+      });
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo'] });
+
+      // Com filtro de tag ativo, ignora os 999/99 vindos da API (que não considera o filtro por
+      // tag) e usa a soma local sobre lancamentosFiltrados — os dois lançamentos têm a tag 'fixo'.
+      expect(component.totalEntradas).toBe(100);
+      expect(component.totalSaidas).toBe(-40);
+      expect(component.quantidadeEntradas).toBe(1);
+      expect(component.quantidadeSaidas).toBe(1);
+    });
+
+    it('cai no cálculo local quando a chamada de agregação falha', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado({ competencia: '', categoria: undefined, status: undefined, tags: [] });
+
+      httpMock.expectOne((r) => r.url === '/api/movimentacao').flush({
+        movimentacoes: [{ id: 'r1', tipo: 1, valor: 250, idsTags: [] } as any],
+        totalRegistros: 1,
+        temProximaPagina: false
+      });
+      httpMock.expectOne((r) => r.url === '/api/movimentacao/agregacao').flush(null, { status: 500, statusText: 'Server Error' });
+
+      expect(component.totalEntradas).toBe(250);
     });
   });
 

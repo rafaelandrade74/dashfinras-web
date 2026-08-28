@@ -28,6 +28,11 @@ const STATUS_INFO: Record<StatusMovimentacao, { label: string; classe: string }>
 
 const PAGE_SIZE = 10;
 
+// Tamanho de página pedido à API (008-limite-consulta-movimentacoes) — o máximo permitido,
+// pra preservar na prática o comportamento anterior (paginação só no cliente) na maioria dos
+// painéis, mostrando um aviso em vez de truncar silenciosamente quando há mais do que isso.
+const TAMANHO_PAGINA_API = 200;
+
 /**
  * Converte a competência numérica da API (formato AAAAMM, ex.: 202608)
  * para o formato de exibição MM/yyyy usado pela tabela.
@@ -67,6 +72,9 @@ export class PainelMovimentacoes implements OnInit {
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
   readonly movimentacoes = signal<MovimentacaoFinanceiraItem[]>([]);
+
+  readonly totalRegistros = signal(0);
+  readonly temMaisNoServidor = signal(false);
 
   readonly paginaAtual = signal(1);
   readonly pageSize = PAGE_SIZE;
@@ -118,11 +126,13 @@ export class PainelMovimentacoes implements OnInit {
     this.erro.set(undefined);
 
     this.movimentacaoFinanceiraService
-      .consultar({ idPainel })
+      .consultar({ idPainel, pagina: 1, tamanhoPagina: TAMANHO_PAGINA_API })
       .pipe(finalize(() => this.carregando.set(false)))
       .subscribe({
-        next: (dados) => {
-          this.movimentacoes.set(dados.map(mapearMovimentacao));
+        next: (resposta) => {
+          this.movimentacoes.set(resposta.movimentacoes.map(mapearMovimentacao));
+          this.totalRegistros.set(resposta.totalRegistros);
+          this.temMaisNoServidor.set(resposta.temProximaPagina);
           this.paginaAtual.set(1);
         },
         error: () => {

@@ -59,11 +59,26 @@ export interface GetMovimentacaoFiltroDto {
   status?: StatusMovimentacao;
   dataInicio?: string;
   dataFim?: string;
+  /** 1-based. Ver ResponseMovimentacoesFinanceirasDto — API pagina a partir de 008-limite-consulta-movimentacoes. */
+  pagina?: number;
+  /** Padrão da API: 50. Máximo: 200. */
+  tamanhoPagina?: number;
+}
+
+export interface ResponseMovimentacoesFinanceirasDto {
+  movimentacoes: ResponseMovimentacaoDto[];
+  /** Total de registros que atendem ao filtro, ignorando a paginação. */
+  totalRegistros: number;
+  /** Indica se existem registros além da página atual. */
+  temProximaPagina: boolean;
 }
 
 export interface AgregacaoFinanceiraDto {
-  competencia: number;
+  /** Reflete o filtro aplicado — null quando nenhuma competência foi informada (009-agregacao-movimentacoes-filtro). */
+  competencia: number | null;
   totalReceitas: number;
   totalDespesas: number;
   saldo: number;
+  quantidadeEntradas: number;
+  quantidadeSaidas: number;
 }

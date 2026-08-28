@@ -109,12 +109,12 @@
           <div class="kpi-card">
             <span class="kpi-label">Entradas</span>
             <span class="kpi-valor kpi-positivo">{{ totalEntradas | currency: 'BRL' }}</span>
-            <span class="kpi-sub">{{ entradasFiltradas.length }} lançamento{{ entradasFiltradas.length === 1 ? '' : 's' }}</span>
+            <span class="kpi-sub">{{ quantidadeEntradas }} lançamento{{ quantidadeEntradas === 1 ? '' : 's' }}</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-label">Saídas</span>
             <span class="kpi-valor kpi-negativo">{{ totalSaidas | currency: 'BRL' }}</span>
-            <span class="kpi-sub">{{ saidasFiltradas.length }} lançamento{{ saidasFiltradas.length === 1 ? '' : 's' }}</span>
+            <span class="kpi-sub">{{ quantidadeSaidas }} lançamento{{ quantidadeSaidas === 1 ? '' : 's' }}</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-label">Saldo</span>
@@ -125,6 +125,14 @@
 
         <section class="tabela-secao">
           <h2>Lançamentos</h2>
+
+          @if (temMaisLancamentosNoServidor()) {
+            <div class="aviso-mais-registros" role="status">
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+              Mostrando os primeiros {{ lancamentos().length }} de {{ totalRegistrosLancamentos() }} lançamentos que
+              atendem a este filtro. Refine a competência ou os demais filtros para ver o restante.
+            </div>
+          }
 
           @if (carregandoLancamentos()) {
             <div class="empty-pane">

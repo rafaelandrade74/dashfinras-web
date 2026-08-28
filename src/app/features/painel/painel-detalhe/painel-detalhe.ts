@@ -11,6 +11,7 @@ import { TagService } from '../../../core/services/tag.service';
 import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import {
+  AgregacaoFinanceiraDto,
   GetMovimentacaoFiltroDto,
   ResponseMovimentacaoDto,
   StatusMovimentacao,
@@ -90,6 +91,12 @@ function competenciaAtual(): string {
 
 const PAGE_SIZE_LANCAMENTOS = 10;
 
+// Tamanho de página pedido à API (008-limite-consulta-movimentacoes): usamos o máximo
+// permitido para preservar, na prática, o comportamento anterior (tabela com paginação só
+// no cliente) para qualquer painel com até 200 lançamentos no filtro aplicado. Além disso,
+// a UI passa a avisar que há mais registros no servidor em vez de escondê-los silenciosamente.
+const TAMANHO_PAGINA_API = 200;
+
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Dono]: { label: 'Dono', classe: 'badge-dono' },
   [PainelPermissao.Administrador]: { label: 'Adm', classe: 'badge-adm' },
@@ -128,6 +135,17 @@ export class PainelDetalhe implements OnInit {
   readonly lancamentos = signal<ResponseMovimentacaoDto[]>([]);
   readonly carregandoLancamentos = signal(false);
   readonly erroLancamentos = signal<string | undefined>(undefined);
+
+  // Metadados de paginação da API (008-limite-consulta-movimentacoes) — o filtro aplicado
+  // pode ter mais registros do que os TAMANHO_PAGINA_API carregados nesta página.
+  readonly totalRegistrosLancamentos = signal(0);
+  readonly temMaisLancamentosNoServidor = signal(false);
+
+  // Agregação (entradas/saídas/saldo + contagem) vinda da API (009-agregacao-movimentacoes-filtro),
+  // calculada sobre TODO o conjunto filtrado no servidor — não só o que foi carregado na página.
+  // undefined enquanto carrega ou se a chamada falhar (nesse caso os KPIs caem no fallback
+  // client-side, ver `agregacaoConfiavel`/getters de KPI abaixo).
+  readonly agregacao = signal<AgregacaoFinanceiraDto | undefined>(undefined);
 
   // Nome das tags (id -> nome), pra exibir na tabela sem mostrar o Guid cru.
   // Recarregado sempre que uma movimentação muda, já que a ação pode ter criado tags novas.
@@ -258,7 +276,7 @@ export class PainelDetalhe implements OnInit {
       },
     });
 
-    this.carregarLancamentos(id);
+    this.carregarDados(id);
     this.carregarTags(id);
   }
 
@@ -277,25 +295,53 @@ export class PainelDetalhe implements OnInit {
     return (l.idsTags ?? []).map((id) => mapa.get(id) ?? TAG_INDISPONIVEL);
   }
 
-  private carregarLancamentos(idPainel: string): void {
-    this.carregandoLancamentos.set(true);
-    this.erroLancamentos.set(undefined);
-
+  private filtroApiAtual(idPainel: string): GetMovimentacaoFiltroDto {
     const filtro = this.filtro();
-    const filtroApi: GetMovimentacaoFiltroDto = {
+    return {
       idPainel,
       competencia: competenciaFiltroParaInteiro(filtro.competencia),
       idCategoria: filtro.categoria ? ID_CATEGORIA_POR_NOME[filtro.categoria] : undefined,
       status: filtro.status ? STATUS_FILTRO_PARA_API[filtro.status] : undefined
+    };
+  }
+
+  private carregarDados(idPainel: string): void {
+    this.carregarLancamentos(idPainel);
+    this.carregarAgregacao(idPainel);
+  }
+
+  private carregarLancamentos(idPainel: string): void {
+    this.carregandoLancamentos.set(true);
+    this.erroLancamentos.set(undefined);
+
+    const filtroApi: GetMovimentacaoFiltroDto = {
+      ...this.filtroApiAtual(idPainel),
+      pagina: 1,
+      tamanhoPagina: TAMANHO_PAGINA_API
     };
 
     this.movimentacaoFinanceiraService
       .consultar(filtroApi)
       .pipe(finalize(() => this.carregandoLancamentos.set(false)))
       .subscribe({
-        next: (dados) => this.lancamentos.set(dados),
+        next: (resposta) => {
+          this.lancamentos.set(resposta.movimentacoes);
+          this.totalRegistrosLancamentos.set(resposta.totalRegistros);
+          this.temMaisLancamentosNoServidor.set(resposta.temProximaPagina);
+        },
         error: () => this.erroLancamentos.set('Não foi possível carregar os lançamentos.')
       });
+  }
+
+  // Filtro por tag é aplicado só no cliente (idsTags guarda texto livre, ver
+  // lancamentosFiltrados) — a API não sabe filtrar por ele, então a agregação do servidor
+  // não reflete esse filtro. Quando há tag(s) selecionada(s), os KPIs caem no fallback
+  // client-side (getters totalEntradas/totalSaidas/saldo) em vez de usar `agregacao()`.
+  private carregarAgregacao(idPainel: string): void {
+    this.movimentacaoFinanceiraService.obterAgregacao(this.filtroApiAtual(idPainel)).subscribe({
+      next: (dados) => this.agregacao.set(dados),
+      error: () => this.agregacao.set(undefined)
+    });
   }
 
   aoFiltroAlterado(filtro: FiltroMovimentacoesDto): void {
@@ -303,7 +349,7 @@ export class PainelDetalhe implements OnInit {
     this.paginaAtual.set(1);
     const painel = this.painel();
     if (painel) {
-      this.carregarLancamentos(painel.id);
+      this.carregarDados(painel.id);
     }
   }
 
@@ -312,6 +358,7 @@ export class PainelDetalhe implements OnInit {
     const painel = this.painel();
     if (painel) {
       this.carregarTags(painel.id);
+      this.carregarAgregacao(painel.id);
     }
   }
 
@@ -384,16 +431,52 @@ export class PainelDetalhe implements OnInit {
     return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Despesa);
   }
 
+  // A agregação do servidor cobre todo o conjunto filtrado (não só a página carregada), mas
+  // não sabe filtrar por tag (filtro client-side, ver `lancamentosFiltrados`). Com tag(s)
+  // selecionada(s), os KPIs caem no cálculo local sobre os lançamentos já carregados — mesma
+  // limitação de sempre, documentada aqui em vez de silenciosa.
+  private get usaAgregacaoServidor(): boolean {
+    return this.filtro().tags.length === 0 && this.agregacao() !== undefined;
+  }
+
   get totalEntradas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.totalReceitas;
+    }
     return this.entradasFiltradas.reduce((soma, l) => soma + l.valor, 0);
   }
 
   get totalSaidas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return -agregacao.totalDespesas;
+    }
     return this.saidasFiltradas.reduce((soma, l) => soma - l.valor, 0);
   }
 
   get saldo(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.saldo;
+    }
     return this.totalEntradas + this.totalSaidas;
+  }
+
+  get quantidadeEntradas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.quantidadeEntradas;
+    }
+    return this.entradasFiltradas.length;
+  }
+
+  get quantidadeSaidas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.quantidadeSaidas;
+    }
+    return this.saidasFiltradas.length;
   }
 
   statusLancamentoInfo(status: StatusMovimentacao): { label: string; classe: string } {
@@ -424,7 +507,7 @@ export class PainelDetalhe implements OnInit {
   aoRegistrarMovimentacao(): void {
     const painel = this.painel();
     if (painel) {
-      this.carregarLancamentos(painel.id);
+      this.carregarDados(painel.id);
       this.carregarTags(painel.id);
     }
   }
