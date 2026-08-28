@@ -630,8 +630,7 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 }
 
 /* ============ Modal Usuários do painel ============ */
-.modal .field select {
-  width: 100%;
+%select-styled {
   padding: 10px 30px 10px 12px;
   border: 1px solid var(--rule);
   border-radius: 4px;
@@ -647,6 +646,12 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 16px;
+  &:disabled { cursor: not-allowed; opacity: 0.6; }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+}
+.modal .field select {
+  @extend %select-styled;
+  width: 100%;
 }
 .modal .field select:focus {
   border-color: var(--accent);
@@ -667,29 +672,17 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .spinner { border-color: rgba(233, 236, 225, 0.3); border-top-color: var(--paper); }
 }
-.modal .field select:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
 .btn-icon-danger {
-  width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--rule); background: var(--paper);
-  color: var(--ink-faint); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0;
-  &:hover { background: var(--danger-wash, rgba(200, 60, 60, 0.08)); color: var(--danger, #c0392b); border-color: var(--danger, #c0392b); }
-  &:disabled { cursor: not-allowed; opacity: 0.6; }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @extend .btn-icon-add;
+  width: 30px; height: 30px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-faint);
+  &:hover { background: var(--danger-wash); color: var(--danger); border-color: var(--danger); }
   i { font-size: 15px; }
 }
 
 .papel-select {
-  flex-shrink: 0; font-size: 12px; padding: 5px 24px 5px 8px; border: 1px solid var(--rule);
-  border-radius: 4px; background: var(--paper); color: var(--ink); cursor: pointer;
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237B8574' stroke-width='2'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 6px center; background-size: 14px;
-  &:disabled { cursor: not-allowed; opacity: 0.6; }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @extend %select-styled;
+  width: auto; flex-shrink: 0; font-size: 12px; padding: 5px 24px 5px 8px;
+  background-position: right 6px center; background-size: 14px;
 }
 
 .field-info { color: var(--teal); }
