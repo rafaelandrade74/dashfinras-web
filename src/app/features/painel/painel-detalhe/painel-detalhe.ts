@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, computed, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, concat, finalize, of, tap } from 'rxjs';
@@ -6,10 +6,20 @@ import { PainelService } from '../../../core/services/painel.service';
 import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
+import { TagService } from '../../../core/services/tag.service';
 import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
+import {
+  GetMovimentacaoFiltroDto,
+  ResponseMovimentacaoDto,
+  StatusMovimentacao,
+  TipoMovimentacao
+} from '../../../core/models/movimentacao-financeira.model';
 import { Erro } from '../../../core/models/erro.model';
 import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
+import { CategoriaResumoDto } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
+import { FiltroMovimentacoesDto } from '../filtro-movimentacoes/filtro-movimentacoes';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,13 +31,60 @@ interface NavItem {
   ativo?: boolean;
 }
 
-interface TransacaoPlaceholder {
-  descricao: string;
-  autor: string;
-  categoria: string;
-  data: string;
-  valor: number;
+// Categorias controladas pelo sistema (seed fixo em 20260825011004_SeedCategorias no
+// backend). Não há endpoint de categorias ainda — lista replicada aqui até essa feature
+// existir (ver specs/003-financial-data-model/data-model.md).
+const CATEGORIAS: CategoriaResumoDto[] = [
+  { id: 'c0000000-0000-0000-0000-000000000001', nome: 'Moradia' },
+  { id: 'c0000000-0000-0000-0000-000000000002', nome: 'Alimentação' },
+  { id: 'c0000000-0000-0000-0000-000000000003', nome: 'Transporte' },
+  { id: 'c0000000-0000-0000-0000-000000000004', nome: 'Saúde' },
+  { id: 'c0000000-0000-0000-0000-000000000005', nome: 'Educação' },
+  { id: 'c0000000-0000-0000-0000-000000000006', nome: 'Lazer' },
+  { id: 'c0000000-0000-0000-0000-000000000007', nome: 'Salário' },
+  { id: 'c0000000-0000-0000-0000-000000000008', nome: 'Investimentos' },
+  { id: 'c0000000-0000-0000-0000-000000000009', nome: 'Assinaturas' },
+  { id: 'c0000000-0000-0000-0000-000000000010', nome: 'Impostos' }
+];
+
+const NOME_CATEGORIA: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.id, categoria.nome])
+);
+
+const ID_CATEGORIA_POR_NOME: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.nome, categoria.id])
+);
+
+const STATUS_FILTRO_PARA_API: Record<'Pendente' | 'Pago', StatusMovimentacao> = {
+  Pendente: StatusMovimentacao.Pendente,
+  Pago: StatusMovimentacao.Pago
+};
+
+const COMPETENCIA_FILTRO_REGEX = /^(0[1-9]|1[0-2])\/\d{4}$/;
+
+function competenciaFiltroParaInteiro(valor: string): number | undefined {
+  if (!COMPETENCIA_FILTRO_REGEX.test(valor.trim())) {
+    return undefined;
+  }
+  const [mes, ano] = valor.trim().split('/');
+  return Number(ano) * 100 + Number(mes);
 }
+
+function formatarCompetencia(competencia: number): string {
+  const texto = String(competencia);
+  if (texto.length !== 6) {
+    return texto;
+  }
+  return `${texto.slice(4, 6)}/${texto.slice(0, 4)}`;
+}
+
+function competenciaAtual(): string {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  return `${mes}/${hoje.getFullYear()}`;
+}
+
+const PAGE_SIZE_LANCAMENTOS = 10;
 
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Dono]: { label: 'Dono', classe: 'badge-dono' },
@@ -45,13 +102,10 @@ const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
 
 const STATUS_DESCONHECIDO = { label: 'Status desconhecido', classe: 'status-desconhecido' };
 
-const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
-  { descricao: 'Salário', autor: 'Você', categoria: 'Renda', data: '2026-08-05', valor: 6500 },
-  { descricao: 'Supermercado', autor: 'Você', categoria: 'Alimentação', data: '2026-08-08', valor: -420.5 },
-  { descricao: 'Aluguel', autor: 'Você', categoria: 'Moradia', data: '2026-08-10', valor: -1800 },
-  { descricao: 'Freelance', autor: 'Você', categoria: 'Renda extra', data: '2026-08-15', valor: 900 },
-  { descricao: 'Internet', autor: 'Você', categoria: 'Contas', data: '2026-08-18', valor: -120 },
-];
+const STATUS_MOVIMENTACAO_INFO: Record<StatusMovimentacao, { label: string; classe: string }> = {
+  [StatusMovimentacao.Pago]: { label: 'Pago', classe: 'status-pago' },
+  [StatusMovimentacao.Pendente]: { label: 'Pendente', classe: 'status-pendente' }
+};
 
 @Component({
   selector: 'app-painel-detalhe',
@@ -67,7 +121,58 @@ export class PainelDetalhe implements OnInit {
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
 
-  readonly transacoes = TRANSACOES_PLACEHOLDER;
+  readonly lancamentos = signal<ResponseMovimentacaoDto[]>([]);
+  readonly carregandoLancamentos = signal(false);
+  readonly erroLancamentos = signal<string | undefined>(undefined);
+
+  // Nome das tags (id -> nome), pra exibir na tabela sem mostrar o Guid cru.
+  // Recarregado sempre que uma movimentação muda, já que a ação pode ter criado tags novas.
+  private readonly nomeTagPorId = signal<Map<string, string>>(new Map());
+
+  readonly competenciaInicial = competenciaAtual();
+
+  readonly filtro = signal<FiltroMovimentacoesDto>({
+    competencia: this.competenciaInicial,
+    categoria: undefined,
+    status: undefined,
+    tags: []
+  });
+
+  // Tags ainda não são entidades reais no backend (ver movimentacao-acoes.ts): tanto o
+  // registro quanto a associação de tags guardam texto livre em idsTags. O filtro por
+  // tag, por isso, é aplicado no cliente sobre o que já veio filtrado pelo servidor.
+  readonly lancamentosFiltrados = computed(() => {
+    const tagsFiltro = this.filtro().tags.map((tag) => tag.toLowerCase());
+    const lista = this.lancamentos();
+    if (tagsFiltro.length === 0) {
+      return lista;
+    }
+    // idsTags guarda Guids reais; o filtro é digitado por nome, então resolve pelo
+    // mesmo cache usado para exibir as tags na tabela antes de comparar. Múltiplas
+    // tags no filtro funcionam como OU (basta ter uma delas) — um lançamento raramente
+    // tem todas as tags escolhidas ao mesmo tempo, então exigir todas (E) some resultado.
+    const nomePorId = this.nomeTagPorId();
+    return lista.filter((l) => {
+      const nomesLancamento = (l.idsTags ?? []).map((id) => (nomePorId.get(id) ?? id).toLowerCase());
+      return tagsFiltro.some((tag) => nomesLancamento.includes(tag));
+    });
+  });
+
+  readonly paginaAtual = signal(1);
+  readonly pageSizeLancamentos = PAGE_SIZE_LANCAMENTOS;
+
+  readonly totalPaginasLancamentos = computed(() =>
+    Math.max(1, Math.ceil(this.lancamentosFiltrados().length / this.pageSizeLancamentos))
+  );
+
+  readonly lancamentosPaginados = computed(() => {
+    const inicio = (this.paginaAtual() - 1) * this.pageSizeLancamentos;
+    return this.lancamentosFiltrados().slice(inicio, inicio + this.pageSizeLancamentos);
+  });
+
+  readonly modalRegistrarAberto = signal(false);
+  readonly categorias = CATEGORIAS;
+  readonly nomesCategorias = CATEGORIAS.map((c) => c.nome);
 
   menuUsuarioAberto = false;
   menuAcoesAberto = false;
@@ -117,6 +222,8 @@ export class PainelDetalhe implements OnInit {
     private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
+    private readonly movimentacaoFinanceiraService: MovimentacaoFinanceiraService,
+    private readonly tagService: TagService,
     private readonly fb: FormBuilder
   ) {
     this.renomearForm = this.fb.group({
@@ -146,6 +253,86 @@ export class PainelDetalhe implements OnInit {
         this.carregando.set(false);
       },
     });
+
+    this.carregarLancamentos(id);
+    this.carregarTags();
+  }
+
+  private carregarTags(): void {
+    this.tagService.listar().subscribe({
+      next: (tags) => this.nomeTagPorId.set(new Map(tags.map((t) => [t.id, t.nome]))),
+      error: () => {
+        // Não bloqueia a tela por isso — tags apenas continuam exibidas como faltando no mapa.
+      }
+    });
+  }
+
+  tagsLancamento(l: ResponseMovimentacaoDto): string[] {
+    const mapa = this.nomeTagPorId();
+    return (l.idsTags ?? []).map((id) => mapa.get(id) ?? id);
+  }
+
+  private carregarLancamentos(idPainel: string): void {
+    this.carregandoLancamentos.set(true);
+    this.erroLancamentos.set(undefined);
+
+    const filtro = this.filtro();
+    const filtroApi: GetMovimentacaoFiltroDto = {
+      idPainel,
+      competencia: competenciaFiltroParaInteiro(filtro.competencia),
+      idCategoria: filtro.categoria ? ID_CATEGORIA_POR_NOME[filtro.categoria] : undefined,
+      status: filtro.status ? STATUS_FILTRO_PARA_API[filtro.status] : undefined
+    };
+
+    this.movimentacaoFinanceiraService
+      .consultar(filtroApi)
+      .pipe(finalize(() => this.carregandoLancamentos.set(false)))
+      .subscribe({
+        next: (dados) => this.lancamentos.set(dados),
+        error: () => this.erroLancamentos.set('Não foi possível carregar os lançamentos.')
+      });
+  }
+
+  aoFiltroAlterado(filtro: FiltroMovimentacoesDto): void {
+    this.filtro.set(filtro);
+    this.paginaAtual.set(1);
+    const painel = this.painel();
+    if (painel) {
+      this.carregarLancamentos(painel.id);
+    }
+  }
+
+  aoMovimentacaoAlterada(atualizada: ResponseMovimentacaoDto): void {
+    this.lancamentos.update((lista) => lista.map((l) => (l.id === atualizada.id ? atualizada : l)));
+    this.carregarTags();
+  }
+
+  paginaAnteriorLancamentos(): void {
+    if (this.paginaAtual() > 1) {
+      this.paginaAtual.update((pagina) => pagina - 1);
+    }
+  }
+
+  proximaPaginaLancamentos(): void {
+    if (this.paginaAtual() < this.totalPaginasLancamentos()) {
+      this.paginaAtual.update((pagina) => pagina + 1);
+    }
+  }
+
+  descricaoLancamento(l: ResponseMovimentacaoDto): string {
+    return l.observacao?.trim() || (l.tipo === TipoMovimentacao.Receita ? 'Receita' : 'Despesa');
+  }
+
+  categoriaLancamento(l: ResponseMovimentacaoDto): string {
+    return NOME_CATEGORIA[l.idCategoria] ?? l.idCategoria;
+  }
+
+  competenciaLancamento(l: ResponseMovimentacaoDto): string {
+    return formatarCompetencia(l.competencia);
+  }
+
+  valorComSinal(l: ResponseMovimentacaoDto): number {
+    return l.tipo === TipoMovimentacao.Despesa ? -Math.abs(l.valor) : Math.abs(l.valor);
   }
 
   get papelDoUsuario(): { label: string; classe: string } | undefined {
@@ -181,16 +368,28 @@ export class PainelDetalhe implements OnInit {
     return permissao === PainelPermissao.Dono;
   }
 
+  get entradasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Receita);
+  }
+
+  get saidasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Despesa);
+  }
+
   get totalEntradas(): number {
-    return this.transacoes.filter((t) => t.valor > 0).reduce((soma, t) => soma + t.valor, 0);
+    return this.entradasFiltradas.reduce((soma, l) => soma + l.valor, 0);
   }
 
   get totalSaidas(): number {
-    return this.transacoes.filter((t) => t.valor < 0).reduce((soma, t) => soma + t.valor, 0);
+    return this.saidasFiltradas.reduce((soma, l) => soma - l.valor, 0);
   }
 
   get saldo(): number {
     return this.totalEntradas + this.totalSaidas;
+  }
+
+  statusLancamentoInfo(status: StatusMovimentacao): { label: string; classe: string } {
+    return STATUS_MOVIMENTACAO_INFO[status] ?? STATUS_DESCONHECIDO;
   }
 
   iniciaisUsuario(firstName?: string, lastName?: string): string {
@@ -201,6 +400,25 @@ export class PainelDetalhe implements OnInit {
 
   voltar(): void {
     this.router.navigateByUrl('/paineis');
+  }
+
+  abrirRegistrarMovimentacao(): void {
+    if (!this.painel()) {
+      return;
+    }
+    this.modalRegistrarAberto.set(true);
+  }
+
+  fecharRegistrarMovimentacao(): void {
+    this.modalRegistrarAberto.set(false);
+  }
+
+  aoRegistrarMovimentacao(): void {
+    const painel = this.painel();
+    if (painel) {
+      this.carregarLancamentos(painel.id);
+    }
+    this.carregarTags();
   }
 
   abrirRenomear(): void {

@@ -3,11 +3,14 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, RouterModule, convertToParamMap } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { AccountService } from '../../../core/services/account.service';
 import { StatusConvite } from '../../../core/models/convite.model';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
 import { PainelDetalhe } from './painel-detalhe';
+import { RegistrarMovimentacaoModal } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
 
 describe('PainelDetalhe', () => {
   let component: PainelDetalhe;
@@ -19,11 +22,12 @@ describe('PainelDetalhe', () => {
     authServiceMock = { logout: vi.fn().mockResolvedValue(undefined) };
 
     await TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule, RouterModule.forRoot([])],
-      declarations: [PainelDetalhe],
+      imports: [ReactiveFormsModule, RouterModule.forRoot([]), MatDatepickerModule],
+      declarations: [PainelDetalhe, RegistrarMovimentacaoModal],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideNativeDateAdapter(),
         { provide: AuthService, useValue: authServiceMock },
         {
           provide: ActivatedRoute,
@@ -50,6 +54,132 @@ describe('PainelDetalhe', () => {
   function logarComo(usuarioId: string): void {
     TestBed.inject(AccountService)['usuarioAtualSubject'].next({ id: usuarioId } as any);
   }
+
+  describe('lancamentosFiltrados — filtro por tag', () => {
+    it('resolve idsTags (Guids) para nome antes de comparar com o texto digitado no filtro', () => {
+      definirPainel([]);
+      const dto = { id: 'mov-1', idsTags: ['tag-id-1'] } as any;
+      component.lancamentos.set([dto]);
+      component.aoMovimentacaoAlterada(dto);
+      httpMock.expectOne('/api/tag').flush({ tags: [{ id: 'tag-id-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' }] });
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo'] });
+      expect(component.lancamentosFiltrados()).toEqual([dto]);
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['FIXO'] });
+      expect(component.lancamentosFiltrados()).toEqual([dto]);
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['outra-tag'] });
+      expect(component.lancamentosFiltrados()).toEqual([]);
+    });
+
+    it('múltiplas tags no filtro funcionam como OU — basta o lançamento ter uma delas', () => {
+      definirPainel([]);
+      const movFixo = { id: 'mov-fixo', idsTags: ['tag-1'] } as any;
+      const movCartao = { id: 'mov-cartao', idsTags: ['tag-2'] } as any;
+      const movSemTag = { id: 'mov-sem-tag', idsTags: [] } as any;
+      component.lancamentos.set([movFixo, movCartao, movSemTag]);
+      component.aoMovimentacaoAlterada(movFixo);
+      httpMock.expectOne('/api/tag').flush({
+        tags: [
+          { id: 'tag-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' },
+          { id: 'tag-2', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' }
+        ]
+      });
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo', 'cartão', 'recorrente'] });
+
+      expect(component.lancamentosFiltrados()).toEqual([movFixo, movCartao]);
+    });
+  });
+
+  describe('tagsLancamento', () => {
+    it('resolve idsTags (Guids) para nomes, usando o cache carregado via TagService', () => {
+      definirPainel([]);
+      const dto = {
+        id: 'mov-1', idPainel: 'painel-1', tipo: 0, idCategoria: 'cat-1', competencia: 202608,
+        valor: 10, status: 0, ativo: true, criadoPor: 'user-1', criadoEm: '2026-08-01T00:00:00Z',
+        idsTags: ['tag-id-1']
+      } as any;
+
+      component.aoMovimentacaoAlterada(dto);
+
+      const req = httpMock.expectOne('/api/tag');
+      req.flush({ tags: [{ id: 'tag-id-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
+
+      expect(component.tagsLancamento(dto)).toEqual(['recorrente']);
+    });
+
+    it('retorna o próprio id quando a tag ainda não está no cache (ex.: falha ao listar)', () => {
+      definirPainel([]);
+      const dto = { idsTags: ['tag-desconhecida'] } as any;
+
+      component.aoMovimentacaoAlterada(dto);
+      httpMock.expectOne('/api/tag').flush(null, { status: 500, statusText: 'Server Error' });
+
+      expect(component.tagsLancamento(dto)).toEqual(['tag-desconhecida']);
+    });
+
+    it('retorna array vazio quando a movimentação não tem tags', () => {
+      const dto = { idsTags: [] } as any;
+      expect(component.tagsLancamento(dto)).toEqual([]);
+    });
+  });
+
+  describe('competência padrão', () => {
+    function competenciaAtualEsperada(): string {
+      const hoje = new Date();
+      return `${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+    }
+
+    it('competenciaInicial reflete o mês atual', () => {
+      expect(component.competenciaInicial).toBe(competenciaAtualEsperada());
+    });
+
+    it('o filtro padrão (usado na primeira consulta) já sai com a competência atual', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado(component.filtro());
+
+      const req = httpMock.expectOne((r) => r.url === '/api/movimentacao');
+      const [mes, ano] = competenciaAtualEsperada().split('/');
+      expect(req.request.params.get('competencia')).toBe(String(Number(ano) * 100 + Number(mes)));
+      req.flush({ movimentacoes: [] });
+    });
+  });
+
+  describe('abrirRegistrarMovimentacao', () => {
+    it('abre o modal de registro quando há painel carregado', () => {
+      definirPainel([]);
+
+      component.abrirRegistrarMovimentacao();
+
+      expect(component.modalRegistrarAberto()).toBe(true);
+    });
+
+    it('não abre o modal quando não há painel carregado', () => {
+      component.painel.set(undefined);
+
+      component.abrirRegistrarMovimentacao();
+
+      expect(component.modalRegistrarAberto()).toBe(false);
+    });
+  });
+
+  describe('fecharRegistrarMovimentacao / aoRegistrarMovimentacao', () => {
+    it('fecha o modal', () => {
+      component.modalRegistrarAberto.set(true);
+      component.fecharRegistrarMovimentacao();
+      expect(component.modalRegistrarAberto()).toBe(false);
+    });
+
+    it('recarrega os lançamentos do painel atual após registrar', () => {
+      definirPainel([]);
+
+      component.aoRegistrarMovimentacao();
+
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({ movimentacoes: [] });
+    });
+  });
 
   describe('statusInfo', () => {
     it.each([
