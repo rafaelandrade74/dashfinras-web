@@ -1,0 +1,158 @@
+<div class="acoes-linha">
+  @if (!jaPago && !jaCancelado) {
+    <button type="button" class="btn-icone" title="Marcar como pago" aria-label="Marcar como pago" (click)="abrirPagar()">
+      <i class="ti ti-check" aria-hidden="true"></i>
+    </button>
+  }
+
+  @if (!jaCancelado) {
+    <button type="button" class="btn-icone" title="Editar tags" aria-label="Editar tags" (click)="abrirTags()">
+      <i class="ti ti-tag" aria-hidden="true"></i>
+    </button>
+
+    <button type="button" class="btn-icone" title="Cancelar" aria-label="Cancelar movimentação" (click)="abrirCancelar()">
+      <i class="ti ti-x" aria-hidden="true"></i>
+    </button>
+  }
+</div>
+
+@if (pagarAberto()) {
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h1>Marcar como pago</h1>
+          <div class="modal-sub">{{ movimentacao.observacao }}</div>
+        </div>
+        <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharPagar()">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="field">
+          <label for="data-pagamento">Data de pagamento</label>
+          <input
+            id="data-pagamento"
+            type="date"
+            [value]="dataPagamento()"
+            (input)="dataPagamento.set($any($event.target).value)"
+          />
+        </div>
+
+        @if (erroPagar()) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ erroPagar() }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-secundario" (click)="fecharPagar()">Cancelar</button>
+        <button type="button" class="btn-primario" [disabled]="marcandoPago()" (click)="confirmarPagar()">
+          @if (marcandoPago()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          Confirmar pagamento
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (tagsAberto()) {
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h1>Editar tags</h1>
+          <div class="modal-sub">{{ movimentacao.observacao }}</div>
+        </div>
+        <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharTags()">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="field">
+          <label for="tag-input">Tags</label>
+          <div class="chips-input">
+            @for (tag of tagsAtuais(); track tag) {
+              <span class="chip">
+                {{ tag }}
+                <button type="button" aria-label="Remover tag" (click)="removerTag(tag)">×</button>
+              </span>
+            }
+            <input
+              id="tag-input"
+              type="text"
+              placeholder="Nova tag"
+              [value]="novaTag()"
+              (input)="novaTag.set($any($event.target).value)"
+              (keydown.enter)="$event.preventDefault(); adicionarTag()"
+            />
+          </div>
+        </div>
+
+        @if (erroTags()) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ erroTags() }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-secundario" (click)="fecharTags()">Cancelar</button>
+        <button type="button" class="btn-primario" [disabled]="salvandoTags()" (click)="salvarTags()">
+          @if (salvandoTags()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          Salvar tags
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (cancelarAberto()) {
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h1>Cancelar movimentação</h1>
+          <div class="modal-sub">Esta ação não pode ser desfeita pela tela.</div>
+        </div>
+        <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharCancelar()">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          Tem certeza que deseja cancelar <strong>{{ movimentacao.observacao }}</strong>? A movimentação
+          será marcada como inativa e deixará de contar nos totais — nenhum dado é apagado de fato,
+          é uma exclusão lógica que pode ser revertida diretamente no banco, se necessário.
+        </p>
+
+        @if (erroCancelar()) {
+          <div class="api-error" role="alert">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+            <span>{{ erroCancelar() }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-secundario" (click)="fecharCancelar()">Voltar</button>
+        <button type="button" class="btn-perigo" [disabled]="cancelando()" (click)="confirmarCancelar()">
+          @if (cancelando()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          Cancelar movimentação
+        </button>
+      </div>
+    </div>
+  </div>
+}
