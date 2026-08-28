@@ -1,0 +1,56 @@
+<div class="filtros">
+  <div class="campo-filtro">
+    <label for="f-competencia">Competência</label>
+    <input
+      id="f-competencia"
+      type="text"
+      placeholder="Ago/2026"
+      autocomplete="off"
+      [value]="competencia()"
+      (input)="onCompetenciaChange($any($event.target).value)"
+    />
+  </div>
+
+  <div class="campo-filtro">
+    <label for="f-categoria">Categoria</label>
+    <select id="f-categoria" [value]="categoria() ?? ''" (change)="onCategoriaChange($any($event.target).value)">
+      <option value="">Todas</option>
+      @for (cat of categorias; track cat) {
+        <option [value]="cat">{{ cat }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="campo-filtro">
+    <label for="f-status">Status</label>
+    <select id="f-status" [value]="status() ?? ''" (change)="onStatusChange($any($event.target).value)">
+      <option value="">Todos</option>
+      <option value="Pendente">Pendente</option>
+      <option value="Pago">Pago</option>
+    </select>
+  </div>
+
+  <div class="campo-filtro campo-tags">
+    <label for="f-tags">Tags</label>
+    <div class="chips-input">
+      @for (tag of tags(); track tag) {
+        <span class="chip">
+          {{ tag }}
+          <button type="button" [attr.aria-label]="'Remover tag ' + tag" (click)="removerTag(tag)">×</button>
+        </span>
+      }
+      <input
+        id="f-tags"
+        type="text"
+        class="chip-input-field"
+        placeholder="Adicionar tag"
+        autocomplete="off"
+        [value]="novaTag()"
+        (input)="onNovaTagChange($any($event.target).value)"
+        (keydown)="onTagInputKeydown($event)"
+      />
+    </div>
+  </div>
+
+  <button type="button" class="filtros-limpar" (click)="limparFiltros()">Limpar filtros</button>
+</div>
