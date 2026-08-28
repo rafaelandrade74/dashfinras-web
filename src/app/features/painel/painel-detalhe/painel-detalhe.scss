@@ -417,7 +417,11 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   background: var(--paper-raised);
 
   th.mat-mdc-header-cell { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); background: var(--paper); border-bottom: 1px solid var(--rule); }
-  td.mat-mdc-cell { border-bottom: 1px solid var(--rule); font-size: 13.5px; color: var(--ink); }
+  td.mat-mdc-cell {
+    border-bottom: 1px solid var(--rule); font-size: 13.5px; color: var(--ink);
+    &.valor-receita { color: var(--positivo); }
+    &.valor-despesa { color: var(--danger); }
+  }
   tr.mat-mdc-row:hover td { background: var(--accent-wash); }
   tr.mat-mdc-row:last-child td { border-bottom: none; }
 }
@@ -427,8 +431,6 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 
 .col-valor, .col-acoes { text-align: right; }
 .col-valor { font-variant-numeric: tabular-nums; font-weight: 500; }
-.valor-receita { color: var(--positivo); }
-.valor-despesa { color: var(--danger); }
 
 /* ============ Modal renomear painel ============ */
 .backdrop {
