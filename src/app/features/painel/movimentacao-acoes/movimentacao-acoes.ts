@@ -148,6 +148,10 @@ export class MovimentacaoAcoes {
   }
 
   salvarTags(): void {
+    // Cobre o texto ainda digitado e não confirmado com Enter — o clique no botão já
+    // deveria disparar o blur do input antes, mas isso garante mesmo se não disparar.
+    this.adicionarTag();
+
     this.salvandoTags.set(true);
     this.erroTags.set(undefined);
 

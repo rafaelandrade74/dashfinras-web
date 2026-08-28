@@ -55,6 +55,25 @@ describe('PainelDetalhe', () => {
     TestBed.inject(AccountService)['usuarioAtualSubject'].next({ id: usuarioId } as any);
   }
 
+  describe('lancamentosFiltrados — filtro por tag', () => {
+    it('resolve idsTags (Guids) para nome antes de comparar com o texto digitado no filtro', () => {
+      definirPainel([]);
+      const dto = { id: 'mov-1', idsTags: ['tag-id-1'] } as any;
+      component.lancamentos.set([dto]);
+      component.aoMovimentacaoAlterada(dto);
+      httpMock.expectOne('/api/tag').flush({ tags: [{ id: 'tag-id-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' }] });
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo'] });
+      expect(component.lancamentosFiltrados()).toEqual([dto]);
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['FIXO'] });
+      expect(component.lancamentosFiltrados()).toEqual([dto]);
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['outra-tag'] });
+      expect(component.lancamentosFiltrados()).toEqual([]);
+    });
+  });
+
   describe('tagsLancamento', () => {
     it('resolve idsTags (Guids) para nomes, usando o cache carregado via TagService', () => {
       definirPainel([]);

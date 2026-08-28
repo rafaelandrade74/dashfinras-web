@@ -55,6 +55,7 @@
         [value]="novaTag()"
         (input)="onNovaTagChange($any($event.target).value)"
         (keydown)="onTagInputKeydown($event)"
+        (blur)="adicionarTag()"
       />
     </div>
   </div>

@@ -142,12 +142,18 @@ export class PainelDetalhe implements OnInit {
   // registro quanto a associação de tags guardam texto livre em idsTags. O filtro por
   // tag, por isso, é aplicado no cliente sobre o que já veio filtrado pelo servidor.
   readonly lancamentosFiltrados = computed(() => {
-    const tags = this.filtro().tags;
+    const tagsFiltro = this.filtro().tags.map((tag) => tag.toLowerCase());
     const lista = this.lancamentos();
-    if (tags.length === 0) {
+    if (tagsFiltro.length === 0) {
       return lista;
     }
-    return lista.filter((l) => tags.every((tag) => (l.idsTags ?? []).includes(tag)));
+    // idsTags guarda Guids reais; o filtro é digitado por nome, então resolve pelo
+    // mesmo cache usado para exibir as tags na tabela antes de comparar.
+    const nomePorId = this.nomeTagPorId();
+    return lista.filter((l) => {
+      const nomesLancamento = (l.idsTags ?? []).map((id) => (nomePorId.get(id) ?? id).toLowerCase());
+      return tagsFiltro.every((tag) => nomesLancamento.includes(tag));
+    });
   });
 
   readonly paginaAtual = signal(1);

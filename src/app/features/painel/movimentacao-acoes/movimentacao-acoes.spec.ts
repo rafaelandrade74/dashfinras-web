@@ -206,6 +206,28 @@ describe('MovimentacaoAcoes', () => {
       );
     });
 
+    it('inclui o texto ainda digitado (sem Enter) ao salvar', () => {
+      component.abrirTags();
+      flushListarTags();
+
+      component.novaTag.set('promoção');
+      // Nenhum Enter/blur disparado — só o texto no campo, direto pra salvarTags().
+      component.salvarTags();
+
+      expect(component.tagsAtuais()).toEqual(['recorrente', 'promoção']);
+      expect(component.novaTag()).toBe('');
+
+      const reqListar = httpMock.expectOne('/api/tag');
+      reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
+      const reqCriar = httpMock.expectOne('/api/tag');
+      expect(reqCriar.request.body).toEqual({ nome: 'promoção' });
+      reqCriar.flush({ id: 'tag-promo-id', nome: 'promoção', criadoEm: '2026-08-01T00:00:00Z' });
+
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
+      expect(req.request.body).toEqual({ idsTags: ['tag-recorrente-id', 'tag-promo-id'] });
+      req.flush(null);
+    });
+
     it('em erro da API, mantém o modal aberto e exibe a mensagem', () => {
       component.abrirTags();
       flushListarTags();

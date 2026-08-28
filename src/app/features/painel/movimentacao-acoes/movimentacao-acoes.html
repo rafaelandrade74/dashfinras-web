@@ -91,6 +91,7 @@
               [value]="novaTag()"
               (input)="novaTag.set($any($event.target).value)"
               (keydown.enter)="$event.preventDefault(); adicionarTag()"
+              (blur)="adicionarTag()"
             />
           </div>
         </div>
