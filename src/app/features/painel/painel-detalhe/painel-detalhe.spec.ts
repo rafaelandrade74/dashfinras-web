@@ -72,6 +72,25 @@ describe('PainelDetalhe', () => {
       component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['outra-tag'] });
       expect(component.lancamentosFiltrados()).toEqual([]);
     });
+
+    it('múltiplas tags no filtro funcionam como OU — basta o lançamento ter uma delas', () => {
+      definirPainel([]);
+      const movFixo = { id: 'mov-fixo', idsTags: ['tag-1'] } as any;
+      const movCartao = { id: 'mov-cartao', idsTags: ['tag-2'] } as any;
+      const movSemTag = { id: 'mov-sem-tag', idsTags: [] } as any;
+      component.lancamentos.set([movFixo, movCartao, movSemTag]);
+      component.aoMovimentacaoAlterada(movFixo);
+      httpMock.expectOne('/api/tag').flush({
+        tags: [
+          { id: 'tag-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' },
+          { id: 'tag-2', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' }
+        ]
+      });
+
+      component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo', 'cartão', 'recorrente'] });
+
+      expect(component.lancamentosFiltrados()).toEqual([movFixo, movCartao]);
+    });
   });
 
   describe('tagsLancamento', () => {

@@ -148,11 +148,13 @@ export class PainelDetalhe implements OnInit {
       return lista;
     }
     // idsTags guarda Guids reais; o filtro é digitado por nome, então resolve pelo
-    // mesmo cache usado para exibir as tags na tabela antes de comparar.
+    // mesmo cache usado para exibir as tags na tabela antes de comparar. Múltiplas
+    // tags no filtro funcionam como OU (basta ter uma delas) — um lançamento raramente
+    // tem todas as tags escolhidas ao mesmo tempo, então exigir todas (E) some resultado.
     const nomePorId = this.nomeTagPorId();
     return lista.filter((l) => {
       const nomesLancamento = (l.idsTags ?? []).map((id) => (nomePorId.get(id) ?? id).toLowerCase());
-      return tagsFiltro.every((tag) => nomesLancamento.includes(tag));
+      return tagsFiltro.some((tag) => nomesLancamento.includes(tag));
     });
   });
 
