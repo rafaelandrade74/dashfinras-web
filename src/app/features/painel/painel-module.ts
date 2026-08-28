@@ -8,9 +8,10 @@ import { PainelRoutingModule } from './painel-routing-module';
 import { PainelList } from './painel-list/painel-list';
 import { PainelCriar } from './painel-criar/painel-criar';
 import { PainelDetalhe } from './painel-detalhe/painel-detalhe';
+import { FiltroMovimentacoes } from './filtro-movimentacoes/filtro-movimentacoes';
 
 @NgModule({
-  declarations: [PainelList, PainelCriar, PainelDetalhe],
+  declarations: [PainelList, PainelCriar, PainelDetalhe, FiltroMovimentacoes],
   imports: [CommonModule, ReactiveFormsModule, PainelRoutingModule, MatTableModule, MatProgressSpinnerModule],
 })
 export class PainelModule {}
