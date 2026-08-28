@@ -53,6 +53,25 @@ describe('TagService', () => {
     expect(resultado).toEqual([]);
   });
 
+  it('listar() sem argumento não envia query string idPainel (comportamento atual preservado)', () => {
+    service.listar().subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === baseUrl);
+    expect(req.request.params.has('idPainel')).toBe(false);
+    req.flush({ tags: [] });
+  });
+
+  it('listar(idPainel) envia a query string idPainel para escopar as tags por painel', () => {
+    let resultado: ResponseTagDto[] | undefined;
+    service.listar('painel-1').subscribe((res) => (resultado = res));
+
+    const req = httpMock.expectOne((r) => r.url === baseUrl);
+    expect(req.request.params.get('idPainel')).toBe('painel-1');
+    req.flush({ tags: [{ id: 'tag-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
+
+    expect(resultado).toEqual([{ id: 'tag-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }]);
+  });
+
   it('resolverIdsPorNome não faz chamada nenhuma para lista vazia', () => {
     let resultado: string[] | undefined;
     service.resolverIdsPorNome([]).subscribe((res) => (resultado = res));
