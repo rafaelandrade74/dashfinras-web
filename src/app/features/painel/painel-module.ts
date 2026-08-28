@@ -10,9 +10,18 @@ import { PainelCriar } from './painel-criar/painel-criar';
 import { PainelDetalhe } from './painel-detalhe/painel-detalhe';
 import { FiltroMovimentacoes } from './filtro-movimentacoes/filtro-movimentacoes';
 import { PainelMovimentacoes } from './painel-movimentacoes/painel-movimentacoes';
+import { RegistrarMovimentacaoModal } from './registrar-movimentacao-modal/registrar-movimentacao-modal';
 
 @NgModule({
-  declarations: [PainelList, PainelCriar, PainelDetalhe, FiltroMovimentacoes, PainelMovimentacoes],
+  declarations: [
+    PainelList,
+    PainelCriar,
+    PainelDetalhe,
+    FiltroMovimentacoes,
+    PainelMovimentacoes,
+    RegistrarMovimentacaoModal
+  ],
   imports: [CommonModule, ReactiveFormsModule, PainelRoutingModule, MatTableModule, MatProgressSpinnerModule],
+  exports: [RegistrarMovimentacaoModal],
 })
 export class PainelModule {}
