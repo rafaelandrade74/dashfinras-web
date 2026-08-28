@@ -55,6 +55,60 @@ describe('PainelDetalhe', () => {
     TestBed.inject(AccountService)['usuarioAtualSubject'].next({ id: usuarioId } as any);
   }
 
+  describe('tagsLancamento', () => {
+    it('resolve idsTags (Guids) para nomes, usando o cache carregado via TagService', () => {
+      definirPainel([]);
+      const dto = {
+        id: 'mov-1', idPainel: 'painel-1', tipo: 0, idCategoria: 'cat-1', competencia: 202608,
+        valor: 10, status: 0, ativo: true, criadoPor: 'user-1', criadoEm: '2026-08-01T00:00:00Z',
+        idsTags: ['tag-id-1']
+      } as any;
+
+      component.aoMovimentacaoAlterada(dto);
+
+      const req = httpMock.expectOne('/api/tag');
+      req.flush({ tags: [{ id: 'tag-id-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
+
+      expect(component.tagsLancamento(dto)).toEqual(['recorrente']);
+    });
+
+    it('retorna o próprio id quando a tag ainda não está no cache (ex.: falha ao listar)', () => {
+      definirPainel([]);
+      const dto = { idsTags: ['tag-desconhecida'] } as any;
+
+      component.aoMovimentacaoAlterada(dto);
+      httpMock.expectOne('/api/tag').flush(null, { status: 500, statusText: 'Server Error' });
+
+      expect(component.tagsLancamento(dto)).toEqual(['tag-desconhecida']);
+    });
+
+    it('retorna array vazio quando a movimentação não tem tags', () => {
+      const dto = { idsTags: [] } as any;
+      expect(component.tagsLancamento(dto)).toEqual([]);
+    });
+  });
+
+  describe('competência padrão', () => {
+    function competenciaAtualEsperada(): string {
+      const hoje = new Date();
+      return `${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+    }
+
+    it('competenciaInicial reflete o mês atual', () => {
+      expect(component.competenciaInicial).toBe(competenciaAtualEsperada());
+    });
+
+    it('o filtro padrão (usado na primeira consulta) já sai com a competência atual', () => {
+      definirPainel([]);
+      component.aoFiltroAlterado(component.filtro());
+
+      const req = httpMock.expectOne((r) => r.url === '/api/movimentacao');
+      const [mes, ano] = competenciaAtualEsperada().split('/');
+      expect(req.request.params.get('competencia')).toBe(String(Number(ano) * 100 + Number(mes)));
+      req.flush({ movimentacoes: [] });
+    });
+  });
+
   describe('abrirRegistrarMovimentacao', () => {
     it('abre o modal de registro quando há painel carregado', () => {
       definirPainel([]);

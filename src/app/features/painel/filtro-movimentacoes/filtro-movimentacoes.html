@@ -1,14 +1,21 @@
 <div class="filtros">
   <div class="campo-filtro">
     <label for="f-competencia">Competência</label>
-    <input
-      id="f-competencia"
-      type="text"
-      placeholder="Ago/2026"
-      autocomplete="off"
-      [value]="competencia()"
-      (input)="onCompetenciaChange($any($event.target).value)"
-    />
+    <div class="input-com-icone">
+      <input
+        id="f-competencia"
+        type="text"
+        placeholder="Ago/2026"
+        autocomplete="off"
+        [value]="competencia()"
+        (input)="onCompetenciaChange($any($event.target).value)"
+      />
+      <button type="button" class="btn-icone-campo" aria-label="Escolher mês pelo calendário" (click)="competenciaPicker.open()">
+        <i class="ti ti-calendar" aria-hidden="true"></i>
+      </button>
+      <input [matDatepicker]="competenciaPicker" class="input-datepicker-oculto" tabindex="-1" aria-hidden="true" />
+      <mat-datepicker #competenciaPicker startView="multi-year" (monthSelected)="selecionarMesCompetencia($event, competenciaPicker)"></mat-datepicker>
+    </div>
   </div>
 
   <div class="campo-filtro">

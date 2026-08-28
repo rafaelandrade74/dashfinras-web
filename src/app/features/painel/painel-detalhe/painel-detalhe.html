@@ -100,6 +100,7 @@
 
       <app-filtro-movimentacoes
         [categorias]="nomesCategorias"
+        [competenciaInicial]="competenciaInicial"
         (filtroAlterado)="aoFiltroAlterado($event)"
       ></app-filtro-movimentacoes>
 
@@ -147,6 +148,13 @@
                     <div class="desc-cel">
                       <span class="desc-nome">{{ descricaoLancamento(l) }}</span>
                       <span>{{ categoriaLancamento(l) }}</span>
+                      @if (tagsLancamento(l).length > 0) {
+                        <div class="desc-tags">
+                          @for (tag of tagsLancamento(l); track tag) {
+                            <span class="tag-pill">{{ tag }}</span>
+                          }
+                        </div>
+                      }
                     </div>
                   </td>
                 </ng-container>

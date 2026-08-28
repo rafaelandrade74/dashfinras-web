@@ -430,6 +430,8 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 
 .desc-cel { display: flex; flex-direction: column; gap: 2px; }
 .desc-nome { font-weight: 500; }
+.desc-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.tag-pill { font-size: 10.5px; background: var(--teal-wash); color: var(--teal); border-radius: 20px; padding: 1px 8px; }
 
 .col-valor, .col-acoes { text-align: right; }
 .col-valor { font-variant-numeric: tabular-nums; font-weight: 500; }

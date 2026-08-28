@@ -58,6 +58,15 @@
   border-color: var(--accent);
 }
 
+.input-com-icone { position: relative; display: flex; input { padding-right: 32px; } }
+.btn-icone-campo {
+  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; border: none; background: none; border-radius: 3px;
+  color: var(--ink-faint); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px;
+  &:hover { background: var(--teal-wash); color: var(--teal); }
+}
+.input-datepicker-oculto { position: absolute; width: 1px; height: 1px; padding: 0; border: none; opacity: 0; pointer-events: none; }
+
 .campo-tags {
   min-width: 220px;
 }

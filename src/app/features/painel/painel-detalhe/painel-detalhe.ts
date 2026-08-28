@@ -7,6 +7,7 @@ import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
+import { TagService } from '../../../core/services/tag.service';
 import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import {
@@ -77,6 +78,12 @@ function formatarCompetencia(competencia: number): string {
   return `${texto.slice(4, 6)}/${texto.slice(0, 4)}`;
 }
 
+function competenciaAtual(): string {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  return `${mes}/${hoje.getFullYear()}`;
+}
+
 const PAGE_SIZE_LANCAMENTOS = 10;
 
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
@@ -118,8 +125,14 @@ export class PainelDetalhe implements OnInit {
   readonly carregandoLancamentos = signal(false);
   readonly erroLancamentos = signal<string | undefined>(undefined);
 
+  // Nome das tags (id -> nome), pra exibir na tabela sem mostrar o Guid cru.
+  // Recarregado sempre que uma movimentação muda, já que a ação pode ter criado tags novas.
+  private readonly nomeTagPorId = signal<Map<string, string>>(new Map());
+
+  readonly competenciaInicial = competenciaAtual();
+
   readonly filtro = signal<FiltroMovimentacoesDto>({
-    competencia: '',
+    competencia: this.competenciaInicial,
     categoria: undefined,
     status: undefined,
     tags: []
@@ -202,6 +215,7 @@ export class PainelDetalhe implements OnInit {
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
     private readonly movimentacaoFinanceiraService: MovimentacaoFinanceiraService,
+    private readonly tagService: TagService,
     private readonly fb: FormBuilder
   ) {
     this.renomearForm = this.fb.group({
@@ -233,6 +247,21 @@ export class PainelDetalhe implements OnInit {
     });
 
     this.carregarLancamentos(id);
+    this.carregarTags();
+  }
+
+  private carregarTags(): void {
+    this.tagService.listar().subscribe({
+      next: (tags) => this.nomeTagPorId.set(new Map(tags.map((t) => [t.id, t.nome]))),
+      error: () => {
+        // Não bloqueia a tela por isso — tags apenas continuam exibidas como faltando no mapa.
+      }
+    });
+  }
+
+  tagsLancamento(l: ResponseMovimentacaoDto): string[] {
+    const mapa = this.nomeTagPorId();
+    return (l.idsTags ?? []).map((id) => mapa.get(id) ?? id);
   }
 
   private carregarLancamentos(idPainel: string): void {
@@ -267,6 +296,7 @@ export class PainelDetalhe implements OnInit {
 
   aoMovimentacaoAlterada(atualizada: ResponseMovimentacaoDto): void {
     this.lancamentos.update((lista) => lista.map((l) => (l.id === atualizada.id ? atualizada : l)));
+    this.carregarTags();
   }
 
   paginaAnteriorLancamentos(): void {
@@ -380,6 +410,7 @@ export class PainelDetalhe implements OnInit {
     if (painel) {
       this.carregarLancamentos(painel.id);
     }
+    this.carregarTags();
   }
 
   abrirRenomear(): void {

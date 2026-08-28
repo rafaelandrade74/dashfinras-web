@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
+import { MatDatepicker } from '@angular/material/datepicker';
 
 export type StatusFiltroMovimentacao = 'Pendente' | 'Pago';
 
@@ -19,8 +20,10 @@ function filtroVazio(): FiltroMovimentacoesDto {
   styleUrl: './filtro-movimentacoes.scss',
   templateUrl: './filtro-movimentacoes.html',
 })
-export class FiltroMovimentacoes {
+export class FiltroMovimentacoes implements OnInit {
   @Input() categorias: string[] = [];
+  /** Valor inicial do campo competência (ex.: mês atual), já refletido no primeiro filtroAlterado. */
+  @Input() competenciaInicial = '';
 
   @Output() readonly filtroAlterado = new EventEmitter<FiltroMovimentacoesDto>();
 
@@ -29,6 +32,12 @@ export class FiltroMovimentacoes {
   readonly status = signal<StatusFiltroMovimentacao | undefined>(undefined);
   readonly tags = signal<string[]>([]);
   readonly novaTag = signal('');
+
+  ngOnInit(): void {
+    if (this.competenciaInicial) {
+      this.competencia.set(this.competenciaInicial);
+    }
+  }
 
   private filtroAtual(): FiltroMovimentacoesDto {
     return {
@@ -46,6 +55,12 @@ export class FiltroMovimentacoes {
   onCompetenciaChange(valor: string): void {
     this.competencia.set(valor);
     this.emitir();
+  }
+
+  selecionarMesCompetencia(data: Date, picker: MatDatepicker<Date>): void {
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    this.onCompetenciaChange(`${mes}/${data.getFullYear()}`);
+    picker.close();
   }
 
   onCategoriaChange(valor: string): void {

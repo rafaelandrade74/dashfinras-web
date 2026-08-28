@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { FiltroMovimentacoes, FiltroMovimentacoesDto } from './filtro-movimentacoes';
 
 describe('FiltroMovimentacoes', () => {
@@ -7,7 +9,9 @@ describe('FiltroMovimentacoes', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      imports: [MatDatepickerModule],
       declarations: [FiltroMovimentacoes],
+      providers: [provideNativeDateAdapter()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FiltroMovimentacoes);
@@ -25,6 +29,45 @@ describe('FiltroMovimentacoes', () => {
     expect(component.categoria()).toBeUndefined();
     expect(component.status()).toBeUndefined();
     expect(component.tags()).toEqual([]);
+  });
+
+  describe('competenciaInicial', () => {
+    it('pré-seleciona a competência informada (ex.: mês atual) antes de qualquer interação', () => {
+      const outraFixture = TestBed.createComponent(FiltroMovimentacoes);
+      outraFixture.componentInstance.competenciaInicial = '08/2026';
+      outraFixture.detectChanges();
+
+      expect(outraFixture.componentInstance.competencia()).toBe('08/2026');
+    });
+
+    it('mantém competência vazia quando nenhum valor inicial é informado', () => {
+      const outraFixture = TestBed.createComponent(FiltroMovimentacoes);
+      outraFixture.detectChanges();
+
+      expect(outraFixture.componentInstance.competencia()).toBe('');
+    });
+  });
+
+  describe('selecionarMesCompetencia', () => {
+    it('preenche a competência no formato MM/AAAA e fecha o datepicker', () => {
+      const spy = vi.fn();
+      component.filtroAlterado.subscribe(spy);
+      const pickerMock = { close: vi.fn() } as any;
+
+      component.selecionarMesCompetencia(new Date(2026, 7, 15), pickerMock);
+
+      expect(component.competencia()).toBe('08/2026');
+      expect(pickerMock.close).toHaveBeenCalled();
+      expect(ultimoFiltroEmitido(spy).competencia).toBe('08/2026');
+    });
+
+    it('preenche mês com zero à esquerda', () => {
+      const pickerMock = { close: vi.fn() } as any;
+
+      component.selecionarMesCompetencia(new Date(2026, 0, 1), pickerMock);
+
+      expect(component.competencia()).toBe('01/2026');
+    });
   });
 
   describe('competência', () => {
