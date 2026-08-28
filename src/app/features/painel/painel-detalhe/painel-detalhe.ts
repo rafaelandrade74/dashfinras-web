@@ -23,6 +23,10 @@ import { FiltroMovimentacoesDto } from '../filtro-movimentacoes/filtro-movimenta
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Placeholder fixo quando uma tag não pode ser resolvida por nome (erro de rede ao carregar
+// tags, ou tag ausente/excluída) — nunca expõe o GUID cru na UI (specs/010-tags-painel-compartilhado).
+const TAG_INDISPONIVEL = 'Tag indisponível';
+
 interface NavItem {
   icone: string;
   label: string;
@@ -255,21 +259,22 @@ export class PainelDetalhe implements OnInit {
     });
 
     this.carregarLancamentos(id);
-    this.carregarTags();
+    this.carregarTags(id);
   }
 
-  private carregarTags(): void {
-    this.tagService.listar().subscribe({
+  private carregarTags(idPainel: string): void {
+    this.tagService.listar(idPainel).subscribe({
       next: (tags) => this.nomeTagPorId.set(new Map(tags.map((t) => [t.id, t.nome]))),
       error: () => {
-        // Não bloqueia a tela por isso — tags apenas continuam exibidas como faltando no mapa.
+        // Não bloqueia a tela por isso — tags apenas continuam exibidas com o placeholder de
+        // fallback em tagsLancamento(), nunca o GUID cru.
       }
     });
   }
 
   tagsLancamento(l: ResponseMovimentacaoDto): string[] {
     const mapa = this.nomeTagPorId();
-    return (l.idsTags ?? []).map((id) => mapa.get(id) ?? id);
+    return (l.idsTags ?? []).map((id) => mapa.get(id) ?? TAG_INDISPONIVEL);
   }
 
   private carregarLancamentos(idPainel: string): void {
@@ -304,7 +309,10 @@ export class PainelDetalhe implements OnInit {
 
   aoMovimentacaoAlterada(atualizada: ResponseMovimentacaoDto): void {
     this.lancamentos.update((lista) => lista.map((l) => (l.id === atualizada.id ? atualizada : l)));
-    this.carregarTags();
+    const painel = this.painel();
+    if (painel) {
+      this.carregarTags(painel.id);
+    }
   }
 
   paginaAnteriorLancamentos(): void {
@@ -417,8 +425,8 @@ export class PainelDetalhe implements OnInit {
     const painel = this.painel();
     if (painel) {
       this.carregarLancamentos(painel.id);
+      this.carregarTags(painel.id);
     }
-    this.carregarTags();
   }
 
   abrirRenomear(): void {

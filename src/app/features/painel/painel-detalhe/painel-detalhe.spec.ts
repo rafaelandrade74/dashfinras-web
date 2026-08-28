@@ -61,7 +61,7 @@ describe('PainelDetalhe', () => {
       const dto = { id: 'mov-1', idsTags: ['tag-id-1'] } as any;
       component.lancamentos.set([dto]);
       component.aoMovimentacaoAlterada(dto);
-      httpMock.expectOne('/api/tag').flush({ tags: [{ id: 'tag-id-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' }] });
+      httpMock.expectOne((r) => r.url === '/api/tag').flush({ tags: [{ id: 'tag-id-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' }] });
 
       component.filtro.set({ competencia: '', categoria: undefined, status: undefined, tags: ['fixo'] });
       expect(component.lancamentosFiltrados()).toEqual([dto]);
@@ -80,7 +80,7 @@ describe('PainelDetalhe', () => {
       const movSemTag = { id: 'mov-sem-tag', idsTags: [] } as any;
       component.lancamentos.set([movFixo, movCartao, movSemTag]);
       component.aoMovimentacaoAlterada(movFixo);
-      httpMock.expectOne('/api/tag').flush({
+      httpMock.expectOne((r) => r.url === '/api/tag').flush({
         tags: [
           { id: 'tag-1', nome: 'fixo', criadoEm: '2026-08-01T00:00:00Z' },
           { id: 'tag-2', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' }
@@ -104,25 +104,71 @@ describe('PainelDetalhe', () => {
 
       component.aoMovimentacaoAlterada(dto);
 
-      const req = httpMock.expectOne('/api/tag');
+      const req = httpMock.expectOne((r) => r.url === '/api/tag');
+      expect(req.request.params.get('idPainel')).toBe('painel-1');
       req.flush({ tags: [{ id: 'tag-id-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
 
       expect(component.tagsLancamento(dto)).toEqual(['recorrente']);
     });
 
-    it('retorna o próprio id quando a tag ainda não está no cache (ex.: falha ao listar)', () => {
+    it('retorna o placeholder "Tag indisponível" quando a tag ainda não está no cache (ex.: falha ao listar) — nunca o GUID cru', () => {
       definirPainel([]);
       const dto = { idsTags: ['tag-desconhecida'] } as any;
 
       component.aoMovimentacaoAlterada(dto);
-      httpMock.expectOne('/api/tag').flush(null, { status: 500, statusText: 'Server Error' });
+      httpMock.expectOne((r) => r.url === '/api/tag').flush(null, { status: 500, statusText: 'Server Error' });
 
-      expect(component.tagsLancamento(dto)).toEqual(['tag-desconhecida']);
+      expect(component.tagsLancamento(dto)).toEqual(['Tag indisponível']);
+    });
+
+    it('retorna o placeholder "Tag indisponível" quando a tag foi carregada com sucesso mas o id não consta no mapa (ex.: tag excluída após associação)', () => {
+      definirPainel([]);
+      const dto = { idsTags: ['tag-removida'] } as any;
+
+      component.aoMovimentacaoAlterada(dto);
+      httpMock.expectOne((r) => r.url === '/api/tag').flush({
+        tags: [{ id: 'outra-tag', nome: 'outra', criadoEm: '2026-08-01T00:00:00Z' }]
+      });
+
+      expect(component.tagsLancamento(dto)).toEqual(['Tag indisponível']);
     });
 
     it('retorna array vazio quando a movimentação não tem tags', () => {
       const dto = { idsTags: [] } as any;
       expect(component.tagsLancamento(dto)).toEqual([]);
+    });
+  });
+
+  describe('carregarTags no ngOnInit', () => {
+    it('chama TagService.listar com o idPainel da rota (para resolver tags de outros membros do painel)', async () => {
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [ReactiveFormsModule, RouterModule.forRoot([]), MatDatepickerModule],
+          declarations: [PainelDetalhe, RegistrarMovimentacaoModal],
+          providers: [
+            provideHttpClient(),
+            provideHttpClientTesting(),
+            provideNativeDateAdapter(),
+            { provide: AuthService, useValue: authServiceMock },
+            {
+              provide: ActivatedRoute,
+              useValue: { snapshot: { paramMap: convertToParamMap({ id: 'painel-rota-1' }) } }
+            }
+          ]
+        })
+        .compileComponents();
+
+      const localFixture = TestBed.createComponent(PainelDetalhe);
+      const localHttpMock = TestBed.inject(HttpTestingController);
+      vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+
+      localFixture.componentInstance.ngOnInit();
+
+      const reqTag = localHttpMock.expectOne((r) => r.url === '/api/tag');
+      expect(reqTag.request.params.get('idPainel')).toBe('painel-rota-1');
+      reqTag.flush({ tags: [] });
+
+      localHttpMock.match(() => true).forEach((req) => req.flush(null));
     });
   });
 
