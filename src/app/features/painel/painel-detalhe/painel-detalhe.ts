@@ -330,12 +330,20 @@ export class PainelDetalhe implements OnInit {
     return permissao === PainelPermissao.Dono;
   }
 
+  get entradasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Receita);
+  }
+
+  get saidasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Despesa);
+  }
+
   get totalEntradas(): number {
-    return this.lancamentos().filter((l) => l.valor > 0).reduce((soma, l) => soma + l.valor, 0);
+    return this.entradasFiltradas.reduce((soma, l) => soma + l.valor, 0);
   }
 
   get totalSaidas(): number {
-    return this.lancamentos().filter((l) => l.valor < 0).reduce((soma, l) => soma + l.valor, 0);
+    return this.saidasFiltradas.reduce((soma, l) => soma - l.valor, 0);
   }
 
   get saldo(): number {
