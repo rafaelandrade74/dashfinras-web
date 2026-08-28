@@ -203,6 +203,14 @@ export class PainelDetalhe implements OnInit {
     this.router.navigateByUrl('/paineis');
   }
 
+  abrirMovimentacoes(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+    this.router.navigateByUrl(`/paineis/${painel.id}/movimentacoes`);
+  }
+
   abrirRenomear(): void {
     const painel = this.painel();
     if (!painel) {

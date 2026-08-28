@@ -51,6 +51,26 @@ describe('PainelDetalhe', () => {
     TestBed.inject(AccountService)['usuarioAtualSubject'].next({ id: usuarioId } as any);
   }
 
+  describe('abrirMovimentacoes', () => {
+    it('navega para /paineis/:id/movimentacoes quando há painel carregado', () => {
+      definirPainel([]);
+
+      component.abrirMovimentacoes();
+
+      expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/paineis/painel-1/movimentacoes');
+    });
+
+    it('não navega quando não há painel carregado', () => {
+      component.painel.set(undefined);
+      const router = TestBed.inject(Router);
+      (router.navigateByUrl as ReturnType<typeof vi.fn>).mockClear();
+
+      component.abrirMovimentacoes();
+
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    });
+  });
+
   describe('statusInfo', () => {
     it.each([
       [StatusConvite.Pendente, 'Pendente', 'status-pendente'],
