@@ -6,10 +6,17 @@ import { PainelService } from '../../../core/services/painel.service';
 import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
 import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
+import {
+  ResponseMovimentacaoDto,
+  StatusMovimentacao,
+  TipoMovimentacao
+} from '../../../core/models/movimentacao-financeira.model';
 import { Erro } from '../../../core/models/erro.model';
 import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
+import { CategoriaResumoDto } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,12 +28,53 @@ interface NavItem {
   ativo?: boolean;
 }
 
-interface TransacaoPlaceholder {
+interface LancamentoExibicao {
+  id: string;
   descricao: string;
-  autor: string;
   categoria: string;
-  data: string;
+  competencia: string;
+  status: StatusMovimentacao;
   valor: number;
+}
+
+// Categorias controladas pelo sistema (seed fixo em 20260825011004_SeedCategorias no
+// backend). Não há endpoint de categorias ainda — lista replicada aqui até essa feature
+// existir (ver specs/003-financial-data-model/data-model.md).
+const CATEGORIAS: CategoriaResumoDto[] = [
+  { id: 'c0000000-0000-0000-0000-000000000001', nome: 'Moradia' },
+  { id: 'c0000000-0000-0000-0000-000000000002', nome: 'Alimentação' },
+  { id: 'c0000000-0000-0000-0000-000000000003', nome: 'Transporte' },
+  { id: 'c0000000-0000-0000-0000-000000000004', nome: 'Saúde' },
+  { id: 'c0000000-0000-0000-0000-000000000005', nome: 'Educação' },
+  { id: 'c0000000-0000-0000-0000-000000000006', nome: 'Lazer' },
+  { id: 'c0000000-0000-0000-0000-000000000007', nome: 'Salário' },
+  { id: 'c0000000-0000-0000-0000-000000000008', nome: 'Investimentos' },
+  { id: 'c0000000-0000-0000-0000-000000000009', nome: 'Assinaturas' },
+  { id: 'c0000000-0000-0000-0000-000000000010', nome: 'Impostos' }
+];
+
+const NOME_CATEGORIA: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.id, categoria.nome])
+);
+
+function formatarCompetencia(competencia: number): string {
+  const texto = String(competencia);
+  if (texto.length !== 6) {
+    return texto;
+  }
+  return `${texto.slice(4, 6)}/${texto.slice(0, 4)}`;
+}
+
+function mapearLancamento(dto: ResponseMovimentacaoDto): LancamentoExibicao {
+  const valorComSinal = dto.tipo === TipoMovimentacao.Despesa ? -Math.abs(dto.valor) : Math.abs(dto.valor);
+  return {
+    id: dto.id,
+    descricao: dto.observacao?.trim() || (dto.tipo === TipoMovimentacao.Receita ? 'Receita' : 'Despesa'),
+    categoria: NOME_CATEGORIA[dto.idCategoria] ?? dto.idCategoria,
+    competencia: formatarCompetencia(dto.competencia),
+    status: dto.status,
+    valor: valorComSinal
+  };
 }
 
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
@@ -45,13 +93,10 @@ const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
 
 const STATUS_DESCONHECIDO = { label: 'Status desconhecido', classe: 'status-desconhecido' };
 
-const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
-  { descricao: 'Salário', autor: 'Você', categoria: 'Renda', data: '2026-08-05', valor: 6500 },
-  { descricao: 'Supermercado', autor: 'Você', categoria: 'Alimentação', data: '2026-08-08', valor: -420.5 },
-  { descricao: 'Aluguel', autor: 'Você', categoria: 'Moradia', data: '2026-08-10', valor: -1800 },
-  { descricao: 'Freelance', autor: 'Você', categoria: 'Renda extra', data: '2026-08-15', valor: 900 },
-  { descricao: 'Internet', autor: 'Você', categoria: 'Contas', data: '2026-08-18', valor: -120 },
-];
+const STATUS_MOVIMENTACAO_INFO: Record<StatusMovimentacao, { label: string; classe: string }> = {
+  [StatusMovimentacao.Pago]: { label: 'Pago', classe: 'status-pago' },
+  [StatusMovimentacao.Pendente]: { label: 'Pendente', classe: 'status-pendente' }
+};
 
 @Component({
   selector: 'app-painel-detalhe',
@@ -67,7 +112,12 @@ export class PainelDetalhe implements OnInit {
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
 
-  readonly transacoes = TRANSACOES_PLACEHOLDER;
+  readonly lancamentos = signal<LancamentoExibicao[]>([]);
+  readonly carregandoLancamentos = signal(false);
+  readonly erroLancamentos = signal<string | undefined>(undefined);
+
+  readonly modalRegistrarAberto = signal(false);
+  readonly categorias = CATEGORIAS;
 
   menuUsuarioAberto = false;
   menuAcoesAberto = false;
@@ -117,6 +167,7 @@ export class PainelDetalhe implements OnInit {
     private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
     protected readonly authService: AuthService,
+    private readonly movimentacaoFinanceiraService: MovimentacaoFinanceiraService,
     private readonly fb: FormBuilder
   ) {
     this.renomearForm = this.fb.group({
@@ -146,6 +197,21 @@ export class PainelDetalhe implements OnInit {
         this.carregando.set(false);
       },
     });
+
+    this.carregarLancamentos(id);
+  }
+
+  private carregarLancamentos(idPainel: string): void {
+    this.carregandoLancamentos.set(true);
+    this.erroLancamentos.set(undefined);
+
+    this.movimentacaoFinanceiraService
+      .consultar({ idPainel })
+      .pipe(finalize(() => this.carregandoLancamentos.set(false)))
+      .subscribe({
+        next: (dados) => this.lancamentos.set(dados.map(mapearLancamento)),
+        error: () => this.erroLancamentos.set('Não foi possível carregar os lançamentos.')
+      });
   }
 
   get papelDoUsuario(): { label: string; classe: string } | undefined {
@@ -182,15 +248,19 @@ export class PainelDetalhe implements OnInit {
   }
 
   get totalEntradas(): number {
-    return this.transacoes.filter((t) => t.valor > 0).reduce((soma, t) => soma + t.valor, 0);
+    return this.lancamentos().filter((l) => l.valor > 0).reduce((soma, l) => soma + l.valor, 0);
   }
 
   get totalSaidas(): number {
-    return this.transacoes.filter((t) => t.valor < 0).reduce((soma, t) => soma + t.valor, 0);
+    return this.lancamentos().filter((l) => l.valor < 0).reduce((soma, l) => soma + l.valor, 0);
   }
 
   get saldo(): number {
     return this.totalEntradas + this.totalSaidas;
+  }
+
+  statusLancamentoInfo(status: StatusMovimentacao): { label: string; classe: string } {
+    return STATUS_MOVIMENTACAO_INFO[status] ?? STATUS_DESCONHECIDO;
   }
 
   iniciaisUsuario(firstName?: string, lastName?: string): string {
@@ -203,12 +273,22 @@ export class PainelDetalhe implements OnInit {
     this.router.navigateByUrl('/paineis');
   }
 
-  abrirMovimentacoes(): void {
-    const painel = this.painel();
-    if (!painel) {
+  abrirRegistrarMovimentacao(): void {
+    if (!this.painel()) {
       return;
     }
-    this.router.navigateByUrl(`/paineis/${painel.id}/movimentacoes`);
+    this.modalRegistrarAberto.set(true);
+  }
+
+  fecharRegistrarMovimentacao(): void {
+    this.modalRegistrarAberto.set(false);
+  }
+
+  aoRegistrarMovimentacao(): void {
+    const painel = this.painel();
+    if (painel) {
+      this.carregarLancamentos(painel.id);
+    }
   }
 
   abrirRenomear(): void {

@@ -8,6 +8,7 @@ import { AccountService } from '../../../core/services/account.service';
 import { StatusConvite } from '../../../core/models/convite.model';
 import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
 import { PainelDetalhe } from './painel-detalhe';
+import { RegistrarMovimentacaoModal } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
 
 describe('PainelDetalhe', () => {
   let component: PainelDetalhe;
@@ -20,7 +21,7 @@ describe('PainelDetalhe', () => {
 
     await TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, RouterModule.forRoot([])],
-      declarations: [PainelDetalhe],
+      declarations: [PainelDetalhe, RegistrarMovimentacaoModal],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -51,23 +52,37 @@ describe('PainelDetalhe', () => {
     TestBed.inject(AccountService)['usuarioAtualSubject'].next({ id: usuarioId } as any);
   }
 
-  describe('abrirMovimentacoes', () => {
-    it('navega para /paineis/:id/movimentacoes quando há painel carregado', () => {
+  describe('abrirRegistrarMovimentacao', () => {
+    it('abre o modal de registro quando há painel carregado', () => {
       definirPainel([]);
 
-      component.abrirMovimentacoes();
+      component.abrirRegistrarMovimentacao();
 
-      expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/paineis/painel-1/movimentacoes');
+      expect(component.modalRegistrarAberto()).toBe(true);
     });
 
-    it('não navega quando não há painel carregado', () => {
+    it('não abre o modal quando não há painel carregado', () => {
       component.painel.set(undefined);
-      const router = TestBed.inject(Router);
-      (router.navigateByUrl as ReturnType<typeof vi.fn>).mockClear();
 
-      component.abrirMovimentacoes();
+      component.abrirRegistrarMovimentacao();
 
-      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(component.modalRegistrarAberto()).toBe(false);
+    });
+  });
+
+  describe('fecharRegistrarMovimentacao / aoRegistrarMovimentacao', () => {
+    it('fecha o modal', () => {
+      component.modalRegistrarAberto.set(true);
+      component.fecharRegistrarMovimentacao();
+      expect(component.modalRegistrarAberto()).toBe(false);
+    });
+
+    it('recarrega os lançamentos do painel atual após registrar', () => {
+      definirPainel([]);
+
+      component.aoRegistrarMovimentacao();
+
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({ movimentacoes: [] });
     });
   });
 
