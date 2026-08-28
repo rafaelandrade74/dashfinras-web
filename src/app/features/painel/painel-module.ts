@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 import { PainelRoutingModule } from './painel-routing-module';
 import { PainelList } from './painel-list/painel-list';
@@ -21,7 +23,15 @@ import { RegistrarMovimentacaoModal } from './registrar-movimentacao-modal/regis
     PainelMovimentacoes,
     RegistrarMovimentacaoModal
   ],
-  imports: [CommonModule, ReactiveFormsModule, PainelRoutingModule, MatTableModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    PainelRoutingModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+    MatDatepickerModule
+  ],
+  providers: [provideNativeDateAdapter()],
   exports: [RegistrarMovimentacaoModal],
 })
 export class PainelModule {}

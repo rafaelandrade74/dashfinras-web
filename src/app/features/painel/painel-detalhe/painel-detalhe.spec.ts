@@ -3,6 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, RouterModule, convertToParamMap } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { AuthService } from '../../../core/services/auth.service';
 import { AccountService } from '../../../core/services/account.service';
 import { StatusConvite } from '../../../core/models/convite.model';
@@ -20,11 +22,12 @@ describe('PainelDetalhe', () => {
     authServiceMock = { logout: vi.fn().mockResolvedValue(undefined) };
 
     await TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule, RouterModule.forRoot([])],
+      imports: [ReactiveFormsModule, RouterModule.forRoot([]), MatDatepickerModule],
       declarations: [PainelDetalhe, RegistrarMovimentacaoModal],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideNativeDateAdapter(),
         { provide: AuthService, useValue: authServiceMock },
         {
           provide: ActivatedRoute,

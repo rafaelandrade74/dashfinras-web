@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { MatDatepicker } from '@angular/material/datepicker';
 import { finalize, switchMap } from 'rxjs';
 import { Erro } from '../../../core/models/erro.model';
 import { RequestRegistrarMovimentacaoDto, TipoMovimentacao } from '../../../core/models/movimentacao-financeira.model';
@@ -63,6 +64,10 @@ export class RegistrarMovimentacaoModal implements OnChanges {
 
   readonly form: FormGroup;
 
+  // Controle auxiliar só para dirigir o mat-datepicker (mês/ano); o valor real do
+  // formulário continua em form.controls['competencia'], no formato MM/AAAA.
+  readonly competenciaDate = new FormControl<Date | null>(null);
+
   private novaTag = '';
 
   constructor(
@@ -95,8 +100,18 @@ export class RegistrarMovimentacaoModal implements OnChanges {
       observacao: ''
     });
     this.novaTag = '';
+    this.competenciaDate.setValue(null);
     this.erroApi.set(undefined);
     this.registrando.set(false);
+  }
+
+  selecionarMesCompetencia(data: Date, picker: MatDatepicker<Date>): void {
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    this.form.controls['competencia'].setValue(`${mes}/${ano}`);
+    this.form.controls['competencia'].markAsTouched();
+    this.competenciaDate.setValue(data);
+    picker.close();
   }
 
   get tags(): string[] {

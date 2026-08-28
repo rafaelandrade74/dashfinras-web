@@ -54,14 +54,36 @@
             </div>
             <div class="field">
               <label for="m-competencia">Competência</label>
-              <input
-                id="m-competencia"
-                type="text"
-                formControlName="competencia"
-                placeholder="MM/AAAA"
-                [class.error]="form.controls['competencia'].invalid && form.controls['competencia'].touched"
-                autocomplete="off"
-              />
+              <div class="input-com-icone">
+                <input
+                  id="m-competencia"
+                  type="text"
+                  formControlName="competencia"
+                  placeholder="MM/AAAA"
+                  [class.error]="form.controls['competencia'].invalid && form.controls['competencia'].touched"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="btn-icone-campo"
+                  aria-label="Escolher mês pelo calendário"
+                  (click)="competenciaPicker.open()"
+                >
+                  <i class="ti ti-calendar" aria-hidden="true"></i>
+                </button>
+                <input
+                  [matDatepicker]="competenciaPicker"
+                  [formControl]="competenciaDate"
+                  class="input-datepicker-oculto"
+                  tabindex="-1"
+                  aria-hidden="true"
+                />
+                <mat-datepicker
+                  #competenciaPicker
+                  startView="multi-year"
+                  (monthSelected)="selecionarMesCompetencia($event, competenciaPicker)"
+                ></mat-datepicker>
+              </div>
               @if (form.controls['competencia'].invalid && form.controls['competencia'].touched) {
                 <div class="field-error" role="alert">
                   <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe a competência no formato MM/AAAA, com mês entre 01 e 12

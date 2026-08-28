@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ReactiveFormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { RegistrarMovimentacaoModal, competenciaParaInteiro } from './registrar-movimentacao-modal';
 import { TipoMovimentacao } from '../../../core/models/movimentacao-financeira.model';
 
@@ -12,9 +14,9 @@ describe('RegistrarMovimentacaoModal', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule],
+      imports: [ReactiveFormsModule, MatDatepickerModule],
       declarations: [RegistrarMovimentacaoModal],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideNativeDateAdapter()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegistrarMovimentacaoModal);
@@ -55,6 +57,28 @@ describe('RegistrarMovimentacaoModal', () => {
       expect(competenciaParaInteiro('08/2026')).toBe(202608);
       expect(competenciaParaInteiro('01/2000')).toBe(200001);
       expect(competenciaParaInteiro('12/2099')).toBe(209912);
+    });
+  });
+
+  describe('selecionarMesCompetencia', () => {
+    it('preenche o campo competência no formato MM/AAAA e fecha o datepicker', () => {
+      abrirModal();
+      const pickerMock = { close: vi.fn() } as any;
+
+      component.selecionarMesCompetencia(new Date(2026, 7, 15), pickerMock);
+
+      expect(component.form.controls['competencia'].value).toBe('08/2026');
+      expect(component.form.controls['competencia'].touched).toBe(true);
+      expect(pickerMock.close).toHaveBeenCalled();
+    });
+
+    it('preenche mês com zero à esquerda', () => {
+      abrirModal();
+      const pickerMock = { close: vi.fn() } as any;
+
+      component.selecionarMesCompetencia(new Date(2026, 0, 1), pickerMock);
+
+      expect(component.form.controls['competencia'].value).toBe('01/2026');
     });
   });
 
