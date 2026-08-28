@@ -284,9 +284,26 @@ describe('RegistrarMovimentacaoModal', () => {
       expect(req.request.body.observacao).toBe('parcela 3 de 6');
       req.flush({ id: 'mov-1' });
 
+      // TagService.resolverIdsPorNome lista as tags do usuário para reaproveitar ids
+      // existentes antes de criar as que faltam.
+      const reqListar = httpMock.expectOne('/api/tag');
+      expect(reqListar.request.method).toBe('GET');
+      reqListar.flush({ tags: [] });
+
+      // forkJoin dispara as duas criações em paralelo — casa cada uma pelo corpo.
+      const reqCriar1 = httpMock.expectOne(
+        (r) => r.url === '/api/tag' && r.method === 'POST' && r.body.nome === 'tag-1'
+      );
+      reqCriar1.flush({ id: 'id-tag-1', nome: 'tag-1', criadoEm: '2026-08-01T00:00:00Z' });
+
+      const reqCriar2 = httpMock.expectOne(
+        (r) => r.url === '/api/tag' && r.method === 'POST' && r.body.nome === 'tag-2'
+      );
+      reqCriar2.flush({ id: 'id-tag-2', nome: 'tag-2', criadoEm: '2026-08-01T00:00:00Z' });
+
       const reqTags = httpMock.expectOne('/api/movimentacao/mov-1/tags');
       expect(reqTags.request.method).toBe('POST');
-      expect(reqTags.request.body).toEqual({ idsTags: ['tag-1', 'tag-2'] });
+      expect(reqTags.request.body).toEqual({ idsTags: ['id-tag-1', 'id-tag-2'] });
       reqTags.flush(null);
     });
 

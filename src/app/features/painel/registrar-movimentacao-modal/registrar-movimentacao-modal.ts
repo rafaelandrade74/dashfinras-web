@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatDatepicker } from '@angular/material/datepicker';
-import { finalize, switchMap } from 'rxjs';
+import { finalize, of, switchMap } from 'rxjs';
 import { Erro } from '../../../core/models/erro.model';
 import { RequestRegistrarMovimentacaoDto, TipoMovimentacao } from '../../../core/models/movimentacao-financeira.model';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
+import { TagService } from '../../../core/services/tag.service';
 
 export interface CategoriaResumoDto {
   id: string;
@@ -72,7 +73,8 @@ export class RegistrarMovimentacaoModal implements OnChanges {
 
   constructor(
     private readonly fb: FormBuilder,
-    private readonly movimentacaoService: MovimentacaoFinanceiraService
+    private readonly movimentacaoService: MovimentacaoFinanceiraService,
+    private readonly tagService: TagService
   ) {
     this.form = this.fb.group({
       tipo: [TipoMovimentacao.Despesa, Validators.required],
@@ -170,13 +172,17 @@ export class RegistrarMovimentacaoModal implements OnChanges {
       observacao: observacao?.trim() || undefined
     };
 
-    const idsTags: string[] = tags?.length ? tags : [];
+    const nomesTags: string[] = tags?.length ? tags : [];
 
     this.movimentacaoService
       .registrar(payload)
       .pipe(
         switchMap((movimentacao) =>
-          idsTags.length ? this.movimentacaoService.associarTags(movimentacao.id, idsTags) : [null]
+          nomesTags.length
+            ? this.tagService
+                .resolverIdsPorNome(nomesTags)
+                .pipe(switchMap((idsTags) => this.movimentacaoService.associarTags(movimentacao.id, idsTags)))
+            : of(null)
         ),
         finalize(() => this.registrando.set(false))
       )

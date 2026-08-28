@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, computed, signal, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, concat, finalize, of, tap } from 'rxjs';
@@ -10,6 +10,7 @@ import { MovimentacaoFinanceiraService } from '../../../core/services/movimentac
 import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
 import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
 import {
+  GetMovimentacaoFiltroDto,
   ResponseMovimentacaoDto,
   StatusMovimentacao,
   TipoMovimentacao
@@ -17,6 +18,7 @@ import {
 import { Erro } from '../../../core/models/erro.model';
 import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
 import { CategoriaResumoDto } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
+import { FiltroMovimentacoesDto } from '../filtro-movimentacoes/filtro-movimentacoes';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,15 +28,6 @@ interface NavItem {
   rota?: string;
   badge?: number;
   ativo?: boolean;
-}
-
-interface LancamentoExibicao {
-  id: string;
-  descricao: string;
-  categoria: string;
-  competencia: string;
-  status: StatusMovimentacao;
-  valor: number;
 }
 
 // Categorias controladas pelo sistema (seed fixo em 20260825011004_SeedCategorias no
@@ -57,6 +50,25 @@ const NOME_CATEGORIA: Record<string, string> = Object.fromEntries(
   CATEGORIAS.map((categoria) => [categoria.id, categoria.nome])
 );
 
+const ID_CATEGORIA_POR_NOME: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.nome, categoria.id])
+);
+
+const STATUS_FILTRO_PARA_API: Record<'Pendente' | 'Pago', StatusMovimentacao> = {
+  Pendente: StatusMovimentacao.Pendente,
+  Pago: StatusMovimentacao.Pago
+};
+
+const COMPETENCIA_FILTRO_REGEX = /^(0[1-9]|1[0-2])\/\d{4}$/;
+
+function competenciaFiltroParaInteiro(valor: string): number | undefined {
+  if (!COMPETENCIA_FILTRO_REGEX.test(valor.trim())) {
+    return undefined;
+  }
+  const [mes, ano] = valor.trim().split('/');
+  return Number(ano) * 100 + Number(mes);
+}
+
 function formatarCompetencia(competencia: number): string {
   const texto = String(competencia);
   if (texto.length !== 6) {
@@ -65,17 +77,7 @@ function formatarCompetencia(competencia: number): string {
   return `${texto.slice(4, 6)}/${texto.slice(0, 4)}`;
 }
 
-function mapearLancamento(dto: ResponseMovimentacaoDto): LancamentoExibicao {
-  const valorComSinal = dto.tipo === TipoMovimentacao.Despesa ? -Math.abs(dto.valor) : Math.abs(dto.valor);
-  return {
-    id: dto.id,
-    descricao: dto.observacao?.trim() || (dto.tipo === TipoMovimentacao.Receita ? 'Receita' : 'Despesa'),
-    categoria: NOME_CATEGORIA[dto.idCategoria] ?? dto.idCategoria,
-    competencia: formatarCompetencia(dto.competencia),
-    status: dto.status,
-    valor: valorComSinal
-  };
-}
+const PAGE_SIZE_LANCAMENTOS = 10;
 
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Dono]: { label: 'Dono', classe: 'badge-dono' },
@@ -112,12 +114,44 @@ export class PainelDetalhe implements OnInit {
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
 
-  readonly lancamentos = signal<LancamentoExibicao[]>([]);
+  readonly lancamentos = signal<ResponseMovimentacaoDto[]>([]);
   readonly carregandoLancamentos = signal(false);
   readonly erroLancamentos = signal<string | undefined>(undefined);
 
+  readonly filtro = signal<FiltroMovimentacoesDto>({
+    competencia: '',
+    categoria: undefined,
+    status: undefined,
+    tags: []
+  });
+
+  // Tags ainda não são entidades reais no backend (ver movimentacao-acoes.ts): tanto o
+  // registro quanto a associação de tags guardam texto livre em idsTags. O filtro por
+  // tag, por isso, é aplicado no cliente sobre o que já veio filtrado pelo servidor.
+  readonly lancamentosFiltrados = computed(() => {
+    const tags = this.filtro().tags;
+    const lista = this.lancamentos();
+    if (tags.length === 0) {
+      return lista;
+    }
+    return lista.filter((l) => tags.every((tag) => (l.idsTags ?? []).includes(tag)));
+  });
+
+  readonly paginaAtual = signal(1);
+  readonly pageSizeLancamentos = PAGE_SIZE_LANCAMENTOS;
+
+  readonly totalPaginasLancamentos = computed(() =>
+    Math.max(1, Math.ceil(this.lancamentosFiltrados().length / this.pageSizeLancamentos))
+  );
+
+  readonly lancamentosPaginados = computed(() => {
+    const inicio = (this.paginaAtual() - 1) * this.pageSizeLancamentos;
+    return this.lancamentosFiltrados().slice(inicio, inicio + this.pageSizeLancamentos);
+  });
+
   readonly modalRegistrarAberto = signal(false);
   readonly categorias = CATEGORIAS;
+  readonly nomesCategorias = CATEGORIAS.map((c) => c.nome);
 
   menuUsuarioAberto = false;
   menuAcoesAberto = false;
@@ -205,13 +239,62 @@ export class PainelDetalhe implements OnInit {
     this.carregandoLancamentos.set(true);
     this.erroLancamentos.set(undefined);
 
+    const filtro = this.filtro();
+    const filtroApi: GetMovimentacaoFiltroDto = {
+      idPainel,
+      competencia: competenciaFiltroParaInteiro(filtro.competencia),
+      idCategoria: filtro.categoria ? ID_CATEGORIA_POR_NOME[filtro.categoria] : undefined,
+      status: filtro.status ? STATUS_FILTRO_PARA_API[filtro.status] : undefined
+    };
+
     this.movimentacaoFinanceiraService
-      .consultar({ idPainel })
+      .consultar(filtroApi)
       .pipe(finalize(() => this.carregandoLancamentos.set(false)))
       .subscribe({
-        next: (dados) => this.lancamentos.set(dados.map(mapearLancamento)),
+        next: (dados) => this.lancamentos.set(dados),
         error: () => this.erroLancamentos.set('Não foi possível carregar os lançamentos.')
       });
+  }
+
+  aoFiltroAlterado(filtro: FiltroMovimentacoesDto): void {
+    this.filtro.set(filtro);
+    this.paginaAtual.set(1);
+    const painel = this.painel();
+    if (painel) {
+      this.carregarLancamentos(painel.id);
+    }
+  }
+
+  aoMovimentacaoAlterada(atualizada: ResponseMovimentacaoDto): void {
+    this.lancamentos.update((lista) => lista.map((l) => (l.id === atualizada.id ? atualizada : l)));
+  }
+
+  paginaAnteriorLancamentos(): void {
+    if (this.paginaAtual() > 1) {
+      this.paginaAtual.update((pagina) => pagina - 1);
+    }
+  }
+
+  proximaPaginaLancamentos(): void {
+    if (this.paginaAtual() < this.totalPaginasLancamentos()) {
+      this.paginaAtual.update((pagina) => pagina + 1);
+    }
+  }
+
+  descricaoLancamento(l: ResponseMovimentacaoDto): string {
+    return l.observacao?.trim() || (l.tipo === TipoMovimentacao.Receita ? 'Receita' : 'Despesa');
+  }
+
+  categoriaLancamento(l: ResponseMovimentacaoDto): string {
+    return NOME_CATEGORIA[l.idCategoria] ?? l.idCategoria;
+  }
+
+  competenciaLancamento(l: ResponseMovimentacaoDto): string {
+    return formatarCompetencia(l.competencia);
+  }
+
+  valorComSinal(l: ResponseMovimentacaoDto): number {
+    return l.tipo === TipoMovimentacao.Despesa ? -Math.abs(l.valor) : Math.abs(l.valor);
   }
 
   get papelDoUsuario(): { label: string; classe: string } | undefined {

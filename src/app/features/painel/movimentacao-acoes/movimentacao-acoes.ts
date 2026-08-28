@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { finalize, map, switchMap } from 'rxjs';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
+import { TagService } from '../../../core/services/tag.service';
 import { ResponseMovimentacaoDto, StatusMovimentacao } from '../../../core/models/movimentacao-financeira.model';
 import { Erro } from '../../../core/models/erro.model';
 
@@ -42,7 +43,10 @@ export class MovimentacaoAcoes {
   readonly cancelando = signal(false);
   readonly erroCancelar = signal<string | undefined>(undefined);
 
-  constructor(private readonly movimentacaoService: MovimentacaoFinanceiraService) {}
+  constructor(
+    private readonly movimentacaoService: MovimentacaoFinanceiraService,
+    private readonly tagService: TagService
+  ) {}
 
   get jaPago(): boolean {
     return this.movimentacao?.status === StatusMovimentacao.Pago;
@@ -100,8 +104,23 @@ export class MovimentacaoAcoes {
   abrirTags(): void {
     this.erroTags.set(undefined);
     this.novaTag.set('');
-    this.tagsAtuais.set(this.movimentacao.idsTags ?? []);
     this.tagsAberto.set(true);
+
+    const idsAtuais = this.movimentacao.idsTags ?? [];
+    if (idsAtuais.length === 0) {
+      this.tagsAtuais.set([]);
+      return;
+    }
+
+    // idsTags guarda os Guids reais das tags; a UI trabalha com nomes, então resolve
+    // id -> nome buscando a lista de tags do usuário antes de exibir os chips.
+    this.tagService.listar().subscribe({
+      next: (tags) => {
+        const nomePorId = new Map(tags.map((tag) => [tag.id, tag.nome]));
+        this.tagsAtuais.set(idsAtuais.map((id) => nomePorId.get(id) ?? id));
+      },
+      error: () => this.tagsAtuais.set(idsAtuais)
+    });
   }
 
   fecharTags(): void {
@@ -132,17 +151,21 @@ export class MovimentacaoAcoes {
     this.salvandoTags.set(true);
     this.erroTags.set(undefined);
 
-    this.movimentacaoService
-      .associarTags(this.movimentacao.id, this.tagsAtuais())
-      .pipe(finalize(() => this.salvandoTags.set(false)))
+    const nomesTags = this.tagsAtuais();
+
+    this.tagService
+      .resolverIdsPorNome(nomesTags)
+      .pipe(
+        switchMap((idsTags) =>
+          this.movimentacaoService.associarTags(this.movimentacao.id, idsTags).pipe(map(() => idsTags))
+        ),
+        finalize(() => this.salvandoTags.set(false))
+      )
       .subscribe({
-        next: () => {
+        next: (idsTags) => {
           // A API não retorna a movimentação atualizada nesta chamada (Observable<void>);
-          // reconstrói localmente a partir do que foi enviado para refletir na UI.
-          const atualizada: ResponseMovimentacaoDto = {
-            ...this.movimentacao,
-            idsTags: this.tagsAtuais()
-          };
+          // reconstrói localmente a partir dos ids resolvidos para refletir na UI.
+          const atualizada: ResponseMovimentacaoDto = { ...this.movimentacao, idsTags };
           this.tagsAberto.set(false);
           this.alterada.emit(atualizada);
         },

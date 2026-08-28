@@ -439,7 +439,8 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
 .descricao-nome { font-weight: 500; }
 .descricao-autor { font-size: 11.5px; color: var(--ink-faint); }
 
-.col-valor { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+.col-valor, .col-acoes { text-align: right; }
+.col-valor { font-family: 'IBM Plex Mono', monospace; }
 .valor-positivo { color: var(--teal); }
 .valor-negativo { color: var(--danger); }
 
@@ -744,10 +745,13 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   .dot { width: 6px; height: 6px; border-radius: 50%; }
 }
 .status-pendente { background: var(--accent-wash); color: var(--accent-strong); .dot { background: var(--accent); } }
-.status-aceito { background: var(--teal-wash); color: var(--teal); .dot { background: var(--teal); } }
+.status-aceito, .status-pago { background: var(--teal-wash); color: var(--teal); .dot { background: var(--teal); } }
 .status-recusado { background: var(--danger-wash); color: var(--danger); .dot { background: var(--danger); } }
-.status-expirado { background: rgba(75, 87, 73, 0.1); color: var(--ink-faint); .dot { background: var(--ink-faint); } }
-.status-desconhecido { background: rgba(75, 87, 73, 0.1); color: var(--ink-faint); .dot { background: var(--ink-faint); } }
+.status-expirado, .status-desconhecido { background: rgba(75, 87, 73, 0.1); color: var(--ink-faint); .dot { background: var(--ink-faint); } }
+
+.col-acoes { width: 1%; white-space: nowrap; }
+.paginacao { display: flex; align-items: center; justify-content: space-between; padding: 14px 4px 0; font-size: 12.5px; color: var(--ink-faint); }
+.pag-botoes { display: flex; gap: 6px; button { width: 28px; height: 28px; &:disabled { cursor: not-allowed; opacity: 0.5; } } }
 
 .btn-reenviar {
   font-size: 11.5px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 5px;
