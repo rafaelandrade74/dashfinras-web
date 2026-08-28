@@ -9,9 +9,10 @@ import { PainelList } from './painel-list/painel-list';
 import { PainelCriar } from './painel-criar/painel-criar';
 import { PainelDetalhe } from './painel-detalhe/painel-detalhe';
 import { FiltroMovimentacoes } from './filtro-movimentacoes/filtro-movimentacoes';
+import { PainelMovimentacoes } from './painel-movimentacoes/painel-movimentacoes';
 
 @NgModule({
-  declarations: [PainelList, PainelCriar, PainelDetalhe, FiltroMovimentacoes],
+  declarations: [PainelList, PainelCriar, PainelDetalhe, FiltroMovimentacoes, PainelMovimentacoes],
   imports: [CommonModule, ReactiveFormsModule, PainelRoutingModule, MatTableModule, MatProgressSpinnerModule],
 })
 export class PainelModule {}
