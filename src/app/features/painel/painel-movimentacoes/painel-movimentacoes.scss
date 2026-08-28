@@ -171,6 +171,22 @@ h1, h2 { font-family: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgi
   margin-bottom: 14px;
 }
 
+.aviso-mais-registros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+  font-size: 13px;
+}
+.aviso-mais-registros i {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
 .tabela-wrap {
   overflow-x: auto;
   border: 1px solid var(--rule);

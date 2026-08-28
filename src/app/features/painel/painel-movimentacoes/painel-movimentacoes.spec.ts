@@ -48,7 +48,9 @@ describe('PainelMovimentacoes', () => {
 
       component.ngOnInit();
       httpMock.expectOne('/api/painel/painel-1').flush({ id: 'painel-1', nome: 'Casa' });
-      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({
+      const req = httpMock.expectOne((req) => req.url === '/api/movimentacao');
+      expect(req.request.params.get('tamanhoPagina')).toBe('200');
+      req.flush({
         movimentacoes: [
           {
             id: 'mov-1',
@@ -62,13 +64,32 @@ describe('PainelMovimentacoes', () => {
             criadoPor: 'user-1',
             criadoEm: '2026-08-01T00:00:00Z'
           }
-        ]
+        ],
+        totalRegistros: 1,
+        temProximaPagina: false
       });
 
       expect(component.painel()?.nome).toBe('Casa');
       expect(component.carregando()).toBe(false);
       expect(component.erro()).toBeUndefined();
       expect(component.movimentacoes().length).toBeGreaterThan(0);
+      expect(component.totalRegistros()).toBe(1);
+      expect(component.temMaisNoServidor()).toBe(false);
+    });
+
+    it('indica quando há mais lançamentos no servidor do que o carregado', async () => {
+      await criarComponente('painel-1');
+
+      component.ngOnInit();
+      httpMock.expectOne('/api/painel/painel-1').flush({ id: 'painel-1', nome: 'Casa' });
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({
+        movimentacoes: [],
+        totalRegistros: 350,
+        temProximaPagina: true
+      });
+
+      expect(component.totalRegistros()).toBe(350);
+      expect(component.temMaisNoServidor()).toBe(true);
     });
 
     it('mantém a tela funcional mesmo se a busca do painel falhar', async () => {
@@ -76,7 +97,9 @@ describe('PainelMovimentacoes', () => {
 
       component.ngOnInit();
       httpMock.expectOne('/api/painel/painel-1').flush(null, { status: 500, statusText: 'Erro' });
-      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush([]);
+      httpMock
+        .expectOne((req) => req.url === '/api/movimentacao')
+        .flush({ movimentacoes: [], totalRegistros: 0, temProximaPagina: false });
 
       expect(component.painel()).toBeUndefined();
       expect(component.movimentacoes()).toEqual([]);

@@ -51,6 +51,13 @@
       <section class="tabela-secao">
         <h2>Lançamentos</h2>
 
+        @if (temMaisNoServidor()) {
+          <div class="aviso-mais-registros" role="status">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            Mostrando os primeiros {{ movimentacoes().length }} de {{ totalRegistros() }} lançamentos deste painel.
+          </div>
+        }
+
         @if (movimentacoes().length === 0) {
           <div class="empty-pane">
             <i class="ti ti-receipt-2" aria-hidden="true"></i>

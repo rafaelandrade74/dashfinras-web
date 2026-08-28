@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AgregacaoFinanceiraDto,
@@ -8,8 +8,19 @@ import {
   RequestAssociarTagsDto,
   RequestMarcarComoPagoDto,
   RequestRegistrarMovimentacaoDto,
-  ResponseMovimentacaoDto
+  ResponseMovimentacaoDto,
+  ResponseMovimentacoesFinanceirasDto
 } from '../models/movimentacao-financeira.model';
+
+function paramsFromFiltro(filtro: GetMovimentacaoFiltroDto): HttpParams {
+  let params = new HttpParams();
+  Object.entries(filtro).forEach(([chave, valor]) => {
+    if (valor !== undefined && valor !== null) {
+      params = params.set(chave, String(valor));
+    }
+  });
+  return params;
+}
 
 @Injectable({ providedIn: 'root' })
 export class MovimentacaoFinanceiraService {
@@ -36,25 +47,21 @@ export class MovimentacaoFinanceiraService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  consultar(filtro: GetMovimentacaoFiltroDto): Observable<ResponseMovimentacaoDto[]> {
-    let params = new HttpParams();
-    Object.entries(filtro).forEach(([chave, valor]) => {
-      if (valor !== undefined && valor !== null) {
-        params = params.set(chave, String(valor));
-      }
-    });
-
-    return this.http
-      .get<{ movimentacoes?: ResponseMovimentacaoDto[] }>(this.baseUrl, { params })
-      .pipe(map((resposta) => resposta.movimentacoes ?? []));
+  /**
+   * Retorna a página de lançamentos que atende ao filtro, com metadados de paginação
+   * (`totalRegistros`/`temProximaPagina`) — a API deixou de retornar o histórico inteiro
+   * sem limite a partir de 008-limite-consulta-movimentacoes.
+   */
+  consultar(filtro: GetMovimentacaoFiltroDto): Observable<ResponseMovimentacoesFinanceirasDto> {
+    return this.http.get<ResponseMovimentacoesFinanceirasDto>(this.baseUrl, { params: paramsFromFiltro(filtro) });
   }
 
-  obterAgregacao(competencia: number, idPainel?: string): Observable<AgregacaoFinanceiraDto> {
-    let params = new HttpParams().set('competencia', String(competencia));
-    if (idPainel) {
-      params = params.set('idPainel', idPainel);
-    }
-
-    return this.http.get<AgregacaoFinanceiraDto>(`${this.baseUrl}/agregacao`, { params });
+  /**
+   * Aceita o mesmo filtro completo de `consultar` (competência agora opcional) — ver
+   * 009-agregacao-movimentacoes-filtro. `pagina`/`tamanhoPagina` do filtro são ignorados pela
+   * API nesse endpoint, mas não fazem mal se vierem preenchidos.
+   */
+  obterAgregacao(filtro: GetMovimentacaoFiltroDto): Observable<AgregacaoFinanceiraDto> {
+    return this.http.get<AgregacaoFinanceiraDto>(`${this.baseUrl}/agregacao`, { params: paramsFromFiltro(filtro) });
   }
 }
