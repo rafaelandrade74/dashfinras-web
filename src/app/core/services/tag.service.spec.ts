@@ -94,4 +94,12 @@ describe('TagService', () => {
 
     expect(resultado).toEqual(['tag-1', 'tag-2']);
   });
+
+  it('resolverIdsPorNome(nomes, idPainel) repassa idPainel para listar() — reaproveita tags de outros membros', () => {
+    service.resolverIdsPorNome(['recorrente'], 'painel-1').subscribe();
+
+    const reqListar = httpMock.expectOne((r) => r.url === baseUrl);
+    expect(reqListar.request.params.get('idPainel')).toBe('painel-1');
+    reqListar.flush({ tags: [{ id: 'tag-1', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
+  });
 });

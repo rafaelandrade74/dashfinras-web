@@ -30,12 +30,16 @@ export class TagService {
   }
 
   /**
-   * Resolve uma lista de nomes de tag para ids reais: reaproveita tags já existentes do
-   * usuário (comparação case-insensitive) e cria as que ainda não existem. Necessário
-   * porque a UI ainda trabalha com texto livre para tags, mas a API só aceita idsTags
-   * (Guid) em MovimentacaoFinanceiraService.associarTags.
+   * Resolve uma lista de nomes de tag para ids reais: reaproveita tags já existentes
+   * (comparação case-insensitive) e cria as que ainda não existem. Necessário porque a UI
+   * ainda trabalha com texto livre para tags, mas a API só aceita idsTags (Guid) em
+   * MovimentacaoFinanceiraService.associarTags.
+   *
+   * `idPainel` (opcional) reaproveita tags de qualquer membro do painel, não só as do usuário
+   * autenticado — sem ele, um convidado que digita o nome de uma tag já criada pelo dono acaba
+   * criando uma tag duplicada em vez de reaproveitar a existente (ver movimentacao-acoes.ts).
    */
-  resolverIdsPorNome(nomes: string[]): Observable<string[]> {
+  resolverIdsPorNome(nomes: string[], idPainel?: string): Observable<string[]> {
     const vistos = new Set<string>();
     const unicos: string[] = [];
     for (const nome of nomes) {
@@ -51,7 +55,7 @@ export class TagService {
       return of([]);
     }
 
-    return this.listar().pipe(
+    return this.listar(idPainel).pipe(
       switchMap((existentes) => {
         const idPorNomeLower = new Map(existentes.map((tag) => [tag.nome.toLowerCase(), tag.id]));
         const chamadas = unicos.map((nome) => {

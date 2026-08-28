@@ -286,8 +286,11 @@ describe('RegistrarMovimentacaoModal', () => {
 
       // TagService.resolverIdsPorNome lista as tags do usuário para reaproveitar ids
       // existentes antes de criar as que faltam.
-      const reqListar = httpMock.expectOne('/api/tag');
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
       expect(reqListar.request.method).toBe('GET');
+      // idPainel reaproveita tags já criadas por outros membros do painel em vez de só as do
+      // usuário autenticado.
+      expect(reqListar.request.params.get('idPainel')).toBe('painel-1');
       reqListar.flush({ tags: [] });
 
       // forkJoin dispara as duas criações em paralelo — casa cada uma pelo corpo.

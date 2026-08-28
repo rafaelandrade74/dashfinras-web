@@ -180,7 +180,7 @@ export class RegistrarMovimentacaoModal implements OnChanges {
         switchMap((movimentacao) =>
           nomesTags.length
             ? this.tagService
-                .resolverIdsPorNome(nomesTags)
+                .resolverIdsPorNome(nomesTags, this.idPainel)
                 .pipe(switchMap((idsTags) => this.movimentacaoService.associarTags(movimentacao.id, idsTags)))
             : of(null)
         ),
