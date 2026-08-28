@@ -198,7 +198,7 @@ describe('RegistrarMovimentacaoModal', () => {
       component.registrar();
 
       expect(component.registrando()).toBe(true);
-      const req = httpMock.expectOne('/api/movimentacoes-financeiras');
+      const req = httpMock.expectOne('/api/movimentacao');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
         idPainel: 'painel-1',
@@ -224,7 +224,7 @@ describe('RegistrarMovimentacaoModal', () => {
 
       component.registrar();
 
-      const req = httpMock.expectOne('/api/movimentacoes-financeiras');
+      const req = httpMock.expectOne('/api/movimentacao');
       req.flush([{ codigo: 'MOVIMENTACAO_INVALIDA', descricao: 'Não foi possível registrar.' }], {
         status: 400,
         statusText: 'Bad Request'
@@ -242,7 +242,7 @@ describe('RegistrarMovimentacaoModal', () => {
 
       component.registrar();
 
-      const req = httpMock.expectOne('/api/movimentacoes-financeiras');
+      const req = httpMock.expectOne('/api/movimentacao');
       req.flush(null, { status: 500, statusText: 'Internal Server Error' });
 
       expect(component.erroApi()).toBe('Não foi possível registrar a movimentação. Tente novamente.');
@@ -256,12 +256,12 @@ describe('RegistrarMovimentacaoModal', () => {
 
       component.registrar();
 
-      const req = httpMock.expectOne('/api/movimentacoes-financeiras');
+      const req = httpMock.expectOne('/api/movimentacao');
       expect(req.request.body.observacao).toBe('parcela 3 de 6');
       req.flush({ id: 'mov-1' });
 
-      const reqTags = httpMock.expectOne('/api/movimentacoes-financeiras/mov-1/tags');
-      expect(reqTags.request.method).toBe('PUT');
+      const reqTags = httpMock.expectOne('/api/movimentacao/mov-1/tags');
+      expect(reqTags.request.method).toBe('POST');
       expect(reqTags.request.body).toEqual({ idsTags: ['tag-1', 'tag-2'] });
       reqTags.flush(null);
     });

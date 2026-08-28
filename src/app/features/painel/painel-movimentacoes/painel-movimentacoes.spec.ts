@@ -48,20 +48,22 @@ describe('PainelMovimentacoes', () => {
 
       component.ngOnInit();
       httpMock.expectOne('/api/painel/painel-1').flush({ id: 'painel-1', nome: 'Casa' });
-      httpMock.expectOne((req) => req.url === '/api/movimentacoes-financeiras').flush([
-        {
-          id: 'mov-1',
-          idPainel: 'painel-1',
-          tipo: 1,
-          idCategoria: 'cat-1',
-          competencia: 202608,
-          valor: 1000,
-          status: 1,
-          ativo: true,
-          criadoPor: 'user-1',
-          criadoEm: '2026-08-01T00:00:00Z'
-        }
-      ]);
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush({
+        movimentacoes: [
+          {
+            id: 'mov-1',
+            idPainel: 'painel-1',
+            tipo: 1,
+            idCategoria: 'cat-1',
+            competencia: 202608,
+            valor: 1000,
+            status: 1,
+            ativo: true,
+            criadoPor: 'user-1',
+            criadoEm: '2026-08-01T00:00:00Z'
+          }
+        ]
+      });
 
       expect(component.painel()?.nome).toBe('Casa');
       expect(component.carregando()).toBe(false);
@@ -74,7 +76,7 @@ describe('PainelMovimentacoes', () => {
 
       component.ngOnInit();
       httpMock.expectOne('/api/painel/painel-1').flush(null, { status: 500, statusText: 'Erro' });
-      httpMock.expectOne((req) => req.url === '/api/movimentacoes-financeiras').flush([]);
+      httpMock.expectOne((req) => req.url === '/api/movimentacao').flush([]);
 
       expect(component.painel()).toBeUndefined();
       expect(component.movimentacoes()).toEqual([]);
@@ -86,7 +88,7 @@ describe('PainelMovimentacoes', () => {
       component.ngOnInit();
       httpMock.expectOne('/api/painel/painel-1').flush({ id: 'painel-1', nome: 'Casa' });
       httpMock
-        .expectOne((req) => req.url === '/api/movimentacoes-financeiras')
+        .expectOne((req) => req.url === '/api/movimentacao')
         .flush(null, { status: 500, statusText: 'Erro' });
 
       expect(component.erro()).toBe('Não foi possível carregar os lançamentos. Tente novamente.');

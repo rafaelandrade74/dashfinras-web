@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AgregacaoFinanceiraDto,
@@ -13,7 +13,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class MovimentacaoFinanceiraService {
-  private readonly baseUrl = `${environment.apiUrl}/movimentacoes-financeiras`;
+  private readonly baseUrl = `${environment.apiUrl}/movimentacao`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -22,14 +22,14 @@ export class MovimentacaoFinanceiraService {
   }
 
   marcarComoPago(id: string, dataPagamento: string): Observable<ResponseMovimentacaoDto> {
-    return this.http.put<ResponseMovimentacaoDto>(
+    return this.http.patch<ResponseMovimentacaoDto>(
       `${this.baseUrl}/${id}/marcar-como-pago`,
       { dataPagamento } as RequestMarcarComoPagoDto
     );
   }
 
   associarTags(id: string, idsTags: string[]): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${id}/tags`, { idsTags } as RequestAssociarTagsDto);
+    return this.http.post<void>(`${this.baseUrl}/${id}/tags`, { idsTags } as RequestAssociarTagsDto);
   }
 
   cancelar(id: string): Observable<void> {
@@ -44,7 +44,9 @@ export class MovimentacaoFinanceiraService {
       }
     });
 
-    return this.http.get<ResponseMovimentacaoDto[]>(this.baseUrl, { params });
+    return this.http
+      .get<{ movimentacoes?: ResponseMovimentacaoDto[] }>(this.baseUrl, { params })
+      .pipe(map((resposta) => resposta.movimentacoes ?? []));
   }
 
   obterAgregacao(competencia: number, idPainel?: string): Observable<AgregacaoFinanceiraDto> {

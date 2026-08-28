@@ -14,7 +14,7 @@ describe('MovimentacaoFinanceiraService', () => {
   let service: MovimentacaoFinanceiraService;
   let httpMock: HttpTestingController;
 
-  const baseUrl = `${environment.apiUrl}/movimentacoes-financeiras`;
+  const baseUrl = `${environment.apiUrl}/movimentacao`;
 
   const movimentacao: ResponseMovimentacaoDto = {
     id: 'mov-1',
@@ -86,7 +86,7 @@ describe('MovimentacaoFinanceiraService', () => {
     service.marcarComoPago('mov-1', '2026-01-10').subscribe((res) => (resultado = res));
 
     const req = httpMock.expectOne(`${baseUrl}/mov-1/marcar-como-pago`);
-    expect(req.request.method).toBe('PUT');
+    expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({ dataPagamento: '2026-01-10' });
     req.flush({ ...movimentacao, status: StatusMovimentacao.Pago, dataPagamento: '2026-01-10' });
 
@@ -110,7 +110,7 @@ describe('MovimentacaoFinanceiraService', () => {
     service.associarTags('mov-1', ['tag-1', 'tag-2']).subscribe(() => (concluiu = true));
 
     const req = httpMock.expectOne(`${baseUrl}/mov-1/tags`);
-    expect(req.request.method).toBe('PUT');
+    expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ idsTags: ['tag-1', 'tag-2'] });
     req.flush(null);
 
@@ -166,7 +166,7 @@ describe('MovimentacaoFinanceiraService', () => {
         r.params.get('status') === String(StatusMovimentacao.Pendente)
     );
     expect(req.request.method).toBe('GET');
-    req.flush([movimentacao]);
+    req.flush({ movimentacoes: [movimentacao] });
 
     expect(resultado).toEqual([movimentacao]);
   });
@@ -176,7 +176,7 @@ describe('MovimentacaoFinanceiraService', () => {
 
     const req = httpMock.expectOne(baseUrl);
     expect(req.request.params.keys().length).toBe(0);
-    req.flush([]);
+    req.flush({ movimentacoes: [] });
   });
 
   it('consultar propaga erro do servidor', () => {

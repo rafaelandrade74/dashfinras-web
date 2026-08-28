@@ -19,7 +19,7 @@ describe('MovimentacaoAcoes', () => {
       valor: 2200,
       status: StatusMovimentacao.Pendente,
       observacao: 'Aluguel',
-      tags: [{ id: 'tag-recorrente', nome: 'recorrente' }],
+      idsTags: ['recorrente'],
       ativo: true,
       criadoPor: 'user-1',
       criadoEm: '2026-08-01T00:00:00Z',
@@ -86,7 +86,7 @@ describe('MovimentacaoAcoes', () => {
       component.dataPagamento.set('');
       component.confirmarPagar();
       expect(component.erroPagar()).toBe('Informe a data de pagamento.');
-      httpMock.expectNone(`/api/movimentacoes-financeiras/${component.movimentacao.id}/marcar-como-pago`);
+      httpMock.expectNone(`/api/movimentacao/${component.movimentacao.id}/marcar-como-pago`);
     });
 
     it('em sucesso, chama o service, fecha o modal e emite a movimentação atualizada', () => {
@@ -98,8 +98,8 @@ describe('MovimentacaoAcoes', () => {
 
       component.confirmarPagar();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}/marcar-como-pago`);
-      expect(req.request.method).toBe('PUT');
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/marcar-como-pago`);
+      expect(req.request.method).toBe('PATCH');
       expect(req.request.body).toEqual({ dataPagamento: '2026-08-20' });
 
       const atualizada = movimentacao({ status: StatusMovimentacao.Pago, dataPagamento: '2026-08-20' });
@@ -115,7 +115,7 @@ describe('MovimentacaoAcoes', () => {
       component.dataPagamento.set('2026-08-20');
       component.confirmarPagar();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}/marcar-como-pago`);
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/marcar-como-pago`);
       req.flush([{ descricao: 'Movimentação já paga.' }], { status: 400, statusText: 'Bad Request' });
 
       expect(component.pagarAberto()).toBe(true);
@@ -132,7 +132,7 @@ describe('MovimentacaoAcoes', () => {
   });
 
   describe('editar tags', () => {
-    beforeEach(() => definir(movimentacao({ tags: [{ id: 'tag-recorrente', nome: 'recorrente' }] })));
+    beforeEach(() => definir(movimentacao({ idsTags: ['recorrente'] })));
 
     it('abre o modal com uma cópia dos nomes das tags atuais', () => {
       component.abrirTags();
@@ -173,15 +173,15 @@ describe('MovimentacaoAcoes', () => {
 
       component.salvarTags();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}/tags`);
-      expect(req.request.method).toBe('PUT');
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
+      expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ idsTags: ['cartão'] });
 
       req.flush(null);
 
       expect(component.tagsAberto()).toBe(false);
       expect(emitida).toHaveBeenCalledWith(
-        expect.objectContaining({ tags: [{ id: 'cartão', nome: 'cartão' }] })
+        expect.objectContaining({ idsTags: ['cartão'] })
       );
     });
 
@@ -189,7 +189,7 @@ describe('MovimentacaoAcoes', () => {
       component.abrirTags();
       component.salvarTags();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}/tags`);
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
       req.flush([{ descricao: 'Não foi possível salvar as tags agora.' }], { status: 500, statusText: 'Server Error' });
 
       expect(component.tagsAberto()).toBe(true);
@@ -222,7 +222,7 @@ describe('MovimentacaoAcoes', () => {
 
       component.confirmarCancelar();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}`);
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}`);
       expect(req.request.method).toBe('DELETE');
 
       req.flush(null);
@@ -235,7 +235,7 @@ describe('MovimentacaoAcoes', () => {
       component.abrirCancelar();
       component.confirmarCancelar();
 
-      const req = httpMock.expectOne(`/api/movimentacoes-financeiras/${component.movimentacao.id}`);
+      const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}`);
       req.flush([{ descricao: 'Não foi possível cancelar agora.' }], { status: 500, statusText: 'Server Error' });
 
       expect(component.cancelarAberto()).toBe(true);

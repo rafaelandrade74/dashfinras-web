@@ -31,7 +31,7 @@ export interface ResponseMovimentacaoDto {
   criadoEm: string;
   alteradoPor?: string;
   alteradoEm?: string;
-  tags?: TagDto[];
+  idsTags?: string[];
 }
 
 export interface RequestRegistrarMovimentacaoDto {

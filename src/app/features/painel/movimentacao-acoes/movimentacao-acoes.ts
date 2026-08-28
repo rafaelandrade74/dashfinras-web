@@ -100,7 +100,7 @@ export class MovimentacaoAcoes {
   abrirTags(): void {
     this.erroTags.set(undefined);
     this.novaTag.set('');
-    this.tagsAtuais.set((this.movimentacao.tags ?? []).map((tag) => tag.nome));
+    this.tagsAtuais.set(this.movimentacao.idsTags ?? []);
     this.tagsAberto.set(true);
   }
 
@@ -141,7 +141,7 @@ export class MovimentacaoAcoes {
           // reconstrói localmente a partir do que foi enviado para refletir na UI.
           const atualizada: ResponseMovimentacaoDto = {
             ...this.movimentacao,
-            tags: this.tagsAtuais().map((nome) => ({ id: nome, nome }))
+            idsTags: this.tagsAtuais()
           };
           this.tagsAberto.set(false);
           this.alterada.emit(atualizada);
