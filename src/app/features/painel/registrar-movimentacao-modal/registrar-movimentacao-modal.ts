@@ -76,7 +76,7 @@ export class RegistrarMovimentacaoModal implements OnChanges {
   ) {
     this.form = this.fb.group({
       tipo: [TipoMovimentacao.Despesa, Validators.required],
-      valor: ['', valorPositivoValidator],
+      valor: [null as number | null, valorPositivoValidator],
       competencia: ['', competenciaValidator],
       idCategoria: ['', Validators.required],
       tags: this.fb.control<string[]>([]),
@@ -93,7 +93,7 @@ export class RegistrarMovimentacaoModal implements OnChanges {
   private resetar(): void {
     this.form.reset({
       tipo: TipoMovimentacao.Despesa,
-      valor: '',
+      valor: null,
       competencia: '',
       idCategoria: '',
       tags: [],

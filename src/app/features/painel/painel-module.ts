@@ -6,6 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { provideNativeDateAdapter } from '@angular/material/core';
 
+import { MoedaMaskDirective } from '../../core/directives/moeda-mask.directive';
 import { PainelRoutingModule } from './painel-routing-module';
 import { PainelList } from './painel-list/painel-list';
 import { PainelCriar } from './painel-criar/painel-criar';
@@ -29,7 +30,8 @@ import { RegistrarMovimentacaoModal } from './registrar-movimentacao-modal/regis
     PainelRoutingModule,
     MatTableModule,
     MatProgressSpinnerModule,
-    MatDatepickerModule
+    MatDatepickerModule,
+    MoedaMaskDirective
   ],
   providers: [provideNativeDateAdapter()],
   exports: [RegistrarMovimentacaoModal],

@@ -311,7 +311,7 @@ describe('RegistrarMovimentacaoModal', () => {
       fixture.detectChanges();
       abrirModal();
 
-      expect(component.form.controls['valor'].value).toBe('');
+      expect(component.form.controls['valor'].value).toBeNull();
       expect(component.form.controls['tipo'].value).toBe(TipoMovimentacao.Despesa);
       expect(component.tags).toEqual([]);
     });

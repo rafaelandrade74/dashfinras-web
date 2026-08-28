@@ -40,7 +40,8 @@
               <input
                 id="m-valor"
                 type="text"
-                inputmode="decimal"
+                inputmode="numeric"
+                appMoedaMask
                 formControlName="valor"
                 placeholder="0,00"
                 [class.error]="form.controls['valor'].invalid && form.controls['valor'].touched"
