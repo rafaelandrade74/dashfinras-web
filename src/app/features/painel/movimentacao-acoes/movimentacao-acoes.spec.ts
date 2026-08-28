@@ -135,8 +135,11 @@ describe('MovimentacaoAcoes', () => {
     beforeEach(() => definir(movimentacao({ idsTags: ['tag-recorrente-id'] })));
 
     function flushListarTags(tags: { id: string; nome: string }[] = [{ id: 'tag-recorrente-id', nome: 'recorrente' }]): void {
-      const req = httpMock.expectOne('/api/tag');
+      const req = httpMock.expectOne((r) => r.url === '/api/tag');
       expect(req.request.method).toBe('GET');
+      // idPainel da movimentação (não do usuário autenticado) — sem isso, um convidado editando
+      // tags criadas por outro membro do painel via esse modal via ao GUID cru em vez do nome.
+      expect(req.request.params.get('idPainel')).toBe('painel-1');
       req.flush({ tags: tags.map((t) => ({ ...t, criadoEm: '2026-08-01T00:00:00Z' })) });
     }
 
@@ -185,11 +188,11 @@ describe('MovimentacaoAcoes', () => {
       component.salvarTags();
 
       // resolverIdsPorNome busca a lista de tags de novo para achar o id de "cartão"
-      const reqListar = httpMock.expectOne('/api/tag');
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
       expect(reqListar.request.method).toBe('GET');
       reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
 
-      const reqCriar = httpMock.expectOne('/api/tag');
+      const reqCriar = httpMock.expectOne((r) => r.url === '/api/tag');
       expect(reqCriar.request.method).toBe('POST');
       expect(reqCriar.request.body).toEqual({ nome: 'cartão' });
       reqCriar.flush({ id: 'tag-cartao-id', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' });
@@ -217,9 +220,9 @@ describe('MovimentacaoAcoes', () => {
       expect(component.tagsAtuais()).toEqual(['recorrente', 'promoção']);
       expect(component.novaTag()).toBe('');
 
-      const reqListar = httpMock.expectOne('/api/tag');
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
       reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
-      const reqCriar = httpMock.expectOne('/api/tag');
+      const reqCriar = httpMock.expectOne((r) => r.url === '/api/tag');
       expect(reqCriar.request.body).toEqual({ nome: 'promoção' });
       reqCriar.flush({ id: 'tag-promo-id', nome: 'promoção', criadoEm: '2026-08-01T00:00:00Z' });
 
@@ -234,7 +237,7 @@ describe('MovimentacaoAcoes', () => {
       component.salvarTags();
 
       // sem tags novas para adicionar (removeu tudo não aconteceu aqui) -> ainda resolve a existente
-      const reqListar = httpMock.expectOne('/api/tag');
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
       reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
 
       const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);

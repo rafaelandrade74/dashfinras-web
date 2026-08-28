@@ -113,8 +113,10 @@ export class MovimentacaoAcoes {
     }
 
     // idsTags guarda os Guids reais das tags; a UI trabalha com nomes, então resolve
-    // id -> nome buscando a lista de tags do usuário antes de exibir os chips.
-    this.tagService.listar().subscribe({
+    // id -> nome buscando as tags do painel (não só as do usuário autenticado) antes de
+    // exibir os chips — sem idPainel, um convidado editando tags criadas pelo dono via
+    // movimentacao-acoes cai no mesmo bug de GUID cru já corrigido em painel-detalhe.ts.
+    this.tagService.listar(this.movimentacao.idPainel).subscribe({
       next: (tags) => {
         const nomePorId = new Map(tags.map((tag) => [tag.id, tag.nome]));
         this.tagsAtuais.set(idsAtuais.map((id) => nomePorId.get(id) ?? id));
@@ -158,7 +160,7 @@ export class MovimentacaoAcoes {
     const nomesTags = this.tagsAtuais();
 
     this.tagService
-      .resolverIdsPorNome(nomesTags)
+      .resolverIdsPorNome(nomesTags, this.movimentacao.idPainel)
       .pipe(
         switchMap((idsTags) =>
           this.movimentacaoService.associarTags(this.movimentacao.id, idsTags).pipe(map(() => idsTags))
