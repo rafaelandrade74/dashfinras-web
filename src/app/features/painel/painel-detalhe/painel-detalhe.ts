@@ -1,9 +1,32 @@
-import { Component, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, computed, signal, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, concat, finalize, of, tap } from 'rxjs';
 import { PainelService } from '../../../core/services/painel.service';
+import { ConviteService } from '../../../core/services/convite.service';
 import { AccountService } from '../../../core/services/account.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { PainelPermissao, ResponsePainelDto } from '../../../core/models/painel.model';
+import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
+import { TagService } from '../../../core/services/tag.service';
+import { PainelPermissao, PainelUsuarioDto, ResponsePainelDto } from '../../../core/models/painel.model';
+import { ResponseConviteDto, StatusConvite } from '../../../core/models/convite.model';
+import {
+  AgregacaoFinanceiraDto,
+  GetMovimentacaoFiltroDto,
+  ResponseMovimentacaoDto,
+  StatusMovimentacao,
+  TipoMovimentacao
+} from '../../../core/models/movimentacao-financeira.model';
+import { Erro } from '../../../core/models/erro.model';
+import { PAPEIS_CONVITE } from '../painel-criar/painel-criar';
+import { CategoriaResumoDto } from '../registrar-movimentacao-modal/registrar-movimentacao-modal';
+import { FiltroMovimentacoesDto } from '../filtro-movimentacoes/filtro-movimentacoes';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Placeholder fixo quando uma tag não pode ser resolvida por nome (erro de rede ao carregar
+// tags, ou tag ausente/excluída) — nunca expõe o GUID cru na UI (specs/010-tags-painel-compartilhado).
+const TAG_INDISPONIVEL = 'Tag indisponível';
 
 interface NavItem {
   icone: string;
@@ -13,13 +36,66 @@ interface NavItem {
   ativo?: boolean;
 }
 
-interface TransacaoPlaceholder {
-  descricao: string;
-  autor: string;
-  categoria: string;
-  data: string;
-  valor: number;
+// Categorias controladas pelo sistema (seed fixo em 20260825011004_SeedCategorias no
+// backend). Não há endpoint de categorias ainda — lista replicada aqui até essa feature
+// existir (ver specs/003-financial-data-model/data-model.md).
+const CATEGORIAS: CategoriaResumoDto[] = [
+  { id: 'c0000000-0000-0000-0000-000000000001', nome: 'Moradia' },
+  { id: 'c0000000-0000-0000-0000-000000000002', nome: 'Alimentação' },
+  { id: 'c0000000-0000-0000-0000-000000000003', nome: 'Transporte' },
+  { id: 'c0000000-0000-0000-0000-000000000004', nome: 'Saúde' },
+  { id: 'c0000000-0000-0000-0000-000000000005', nome: 'Educação' },
+  { id: 'c0000000-0000-0000-0000-000000000006', nome: 'Lazer' },
+  { id: 'c0000000-0000-0000-0000-000000000007', nome: 'Salário' },
+  { id: 'c0000000-0000-0000-0000-000000000008', nome: 'Investimentos' },
+  { id: 'c0000000-0000-0000-0000-000000000009', nome: 'Assinaturas' },
+  { id: 'c0000000-0000-0000-0000-000000000010', nome: 'Impostos' }
+];
+
+const NOME_CATEGORIA: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.id, categoria.nome])
+);
+
+const ID_CATEGORIA_POR_NOME: Record<string, string> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => [categoria.nome, categoria.id])
+);
+
+const STATUS_FILTRO_PARA_API: Record<'Pendente' | 'Pago', StatusMovimentacao> = {
+  Pendente: StatusMovimentacao.Pendente,
+  Pago: StatusMovimentacao.Pago
+};
+
+const COMPETENCIA_FILTRO_REGEX = /^(0[1-9]|1[0-2])\/\d{4}$/;
+
+function competenciaFiltroParaInteiro(valor: string): number | undefined {
+  if (!COMPETENCIA_FILTRO_REGEX.test(valor.trim())) {
+    return undefined;
+  }
+  const [mes, ano] = valor.trim().split('/');
+  return Number(ano) * 100 + Number(mes);
 }
+
+function formatarCompetencia(competencia: number): string {
+  const texto = String(competencia);
+  if (texto.length !== 6) {
+    return texto;
+  }
+  return `${texto.slice(4, 6)}/${texto.slice(0, 4)}`;
+}
+
+function competenciaAtual(): string {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  return `${mes}/${hoje.getFullYear()}`;
+}
+
+const PAGE_SIZE_LANCAMENTOS = 10;
+
+// Tamanho de página pedido à API (008-limite-consulta-movimentacoes): usamos o máximo
+// permitido para preservar, na prática, o comportamento anterior (tabela com paginação só
+// no cliente) para qualquer painel com até 200 lançamentos no filtro aplicado. Além disso,
+// a UI passa a avisar que há mais registros no servidor em vez de escondê-los silenciosamente.
+const TAMANHO_PAGINA_API = 200;
 
 const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Dono]: { label: 'Dono', classe: 'badge-dono' },
@@ -28,13 +104,19 @@ const PAPEL_INFO: Record<PainelPermissao, { label: string; classe: string }> = {
   [PainelPermissao.Visualizador]: { label: 'Visualizador', classe: 'badge-visualizador' },
 };
 
-const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
-  { descricao: 'Salário', autor: 'Você', categoria: 'Renda', data: '2026-08-05', valor: 6500 },
-  { descricao: 'Supermercado', autor: 'Você', categoria: 'Alimentação', data: '2026-08-08', valor: -420.5 },
-  { descricao: 'Aluguel', autor: 'Você', categoria: 'Moradia', data: '2026-08-10', valor: -1800 },
-  { descricao: 'Freelance', autor: 'Você', categoria: 'Renda extra', data: '2026-08-15', valor: 900 },
-  { descricao: 'Internet', autor: 'Você', categoria: 'Contas', data: '2026-08-18', valor: -120 },
-];
+const STATUS_INFO: Record<StatusConvite, { label: string; classe: string }> = {
+  [StatusConvite.Pendente]: { label: 'Pendente', classe: 'status-pendente' },
+  [StatusConvite.Aprovado]: { label: 'Aprovado', classe: 'status-aceito' },
+  [StatusConvite.Recusado]: { label: 'Recusado', classe: 'status-recusado' },
+  [StatusConvite.Expirado]: { label: 'Expirado', classe: 'status-expirado' },
+};
+
+const STATUS_DESCONHECIDO = { label: 'Status desconhecido', classe: 'status-desconhecido' };
+
+const STATUS_MOVIMENTACAO_INFO: Record<StatusMovimentacao, { label: string; classe: string }> = {
+  [StatusMovimentacao.Pago]: { label: 'Pago', classe: 'status-pago' },
+  [StatusMovimentacao.Pendente]: { label: 'Pendente', classe: 'status-pendente' }
+};
 
 @Component({
   selector: 'app-painel-detalhe',
@@ -44,14 +126,109 @@ const TRANSACOES_PLACEHOLDER: TransacaoPlaceholder[] = [
 })
 export class PainelDetalhe implements OnInit {
   @ViewChild('sidebarFooter') private readonly sidebarFooter?: ElementRef<HTMLElement>;
+  @ViewChild('menuAcoes') private readonly menuAcoes?: ElementRef<HTMLElement>;
 
   readonly painel = signal<ResponsePainelDto | undefined>(undefined);
   readonly carregando = signal(false);
   readonly erro = signal<string | undefined>(undefined);
 
-  readonly transacoes = TRANSACOES_PLACEHOLDER;
+  readonly lancamentos = signal<ResponseMovimentacaoDto[]>([]);
+  readonly carregandoLancamentos = signal(false);
+  readonly erroLancamentos = signal<string | undefined>(undefined);
+
+  // Metadados de paginação da API (008-limite-consulta-movimentacoes) — o filtro aplicado
+  // pode ter mais registros do que os TAMANHO_PAGINA_API carregados nesta página.
+  readonly totalRegistrosLancamentos = signal(0);
+  readonly temMaisLancamentosNoServidor = signal(false);
+
+  // Agregação (entradas/saídas/saldo + contagem) vinda da API (009-agregacao-movimentacoes-filtro),
+  // calculada sobre TODO o conjunto filtrado no servidor — não só o que foi carregado na página.
+  // undefined enquanto carrega ou se a chamada falhar (nesse caso os KPIs caem no fallback
+  // client-side, ver `agregacaoConfiavel`/getters de KPI abaixo).
+  readonly agregacao = signal<AgregacaoFinanceiraDto | undefined>(undefined);
+
+  // Nome das tags (id -> nome), pra exibir na tabela sem mostrar o Guid cru.
+  // Recarregado sempre que uma movimentação muda, já que a ação pode ter criado tags novas.
+  private readonly nomeTagPorId = signal<Map<string, string>>(new Map());
+
+  readonly competenciaInicial = competenciaAtual();
+
+  readonly filtro = signal<FiltroMovimentacoesDto>({
+    competencia: this.competenciaInicial,
+    categoria: undefined,
+    status: undefined,
+    tags: []
+  });
+
+  // Tags ainda não são entidades reais no backend (ver movimentacao-acoes.ts): tanto o
+  // registro quanto a associação de tags guardam texto livre em idsTags. O filtro por
+  // tag, por isso, é aplicado no cliente sobre o que já veio filtrado pelo servidor.
+  readonly lancamentosFiltrados = computed(() => {
+    const tagsFiltro = this.filtro().tags.map((tag) => tag.toLowerCase());
+    const lista = this.lancamentos();
+    if (tagsFiltro.length === 0) {
+      return lista;
+    }
+    // idsTags guarda Guids reais; o filtro é digitado por nome, então resolve pelo
+    // mesmo cache usado para exibir as tags na tabela antes de comparar. Múltiplas
+    // tags no filtro funcionam como OU (basta ter uma delas) — um lançamento raramente
+    // tem todas as tags escolhidas ao mesmo tempo, então exigir todas (E) some resultado.
+    const nomePorId = this.nomeTagPorId();
+    return lista.filter((l) => {
+      const nomesLancamento = (l.idsTags ?? []).map((id) => (nomePorId.get(id) ?? id).toLowerCase());
+      return tagsFiltro.some((tag) => nomesLancamento.includes(tag));
+    });
+  });
+
+  readonly paginaAtual = signal(1);
+  readonly pageSizeLancamentos = PAGE_SIZE_LANCAMENTOS;
+
+  readonly totalPaginasLancamentos = computed(() =>
+    Math.max(1, Math.ceil(this.lancamentosFiltrados().length / this.pageSizeLancamentos))
+  );
+
+  readonly lancamentosPaginados = computed(() => {
+    const inicio = (this.paginaAtual() - 1) * this.pageSizeLancamentos;
+    return this.lancamentosFiltrados().slice(inicio, inicio + this.pageSizeLancamentos);
+  });
+
+  readonly modalRegistrarAberto = signal(false);
+  readonly categorias = CATEGORIAS;
+  readonly nomesCategorias = CATEGORIAS.map((c) => c.nome);
 
   menuUsuarioAberto = false;
+  menuAcoesAberto = false;
+
+  readonly renomearAberto = signal(false);
+  readonly renomeando = signal(false);
+  readonly erroRenomear = signal<string | undefined>(undefined);
+  readonly renomearForm: FormGroup;
+
+  readonly excluirAberto = signal(false);
+  readonly excluindo = signal(false);
+  readonly erroExcluir = signal<string | undefined>(undefined);
+
+  readonly usuariosAberto = signal(false);
+  readonly adicionandoUsuario = signal(false);
+  readonly erroAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly avisoAdicionarUsuario = signal<string | undefined>(undefined);
+  readonly adicionarUsuarioForm: FormGroup;
+  readonly papeis = PAPEIS_CONVITE;
+
+  readonly usuariosAba = signal<'usuarios' | 'convites'>('usuarios');
+  readonly convites = signal<ResponseConviteDto[]>([]);
+  readonly convitesCarregados = signal(false);
+  readonly carregandoConvites = signal(false);
+  readonly erroConvites = signal<string | undefined>(undefined);
+  readonly reenviandoConviteId = signal<string | undefined>(undefined);
+
+  readonly usuarioParaRemover = signal<PainelUsuarioDto | undefined>(undefined);
+  readonly removendoUsuarioId = signal<string | undefined>(undefined);
+  readonly erroRemoverUsuario = signal<string | undefined>(undefined);
+
+  readonly papeisPendentes = signal<Record<string, PainelPermissao>>({});
+  readonly salvandoAlteracoes = signal(false);
+  readonly errosAlterarPapel = signal<Record<string, string>>({});
 
   readonly navItems: NavItem[] = [
     { icone: 'ti-layout-dashboard', label: 'Painéis', rota: '/paineis', ativo: true },
@@ -64,9 +241,21 @@ export class PainelDetalhe implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly painelService: PainelService,
+    private readonly conviteService: ConviteService,
     private readonly accountService: AccountService,
-    protected readonly authService: AuthService
-  ) {}
+    protected readonly authService: AuthService,
+    private readonly movimentacaoFinanceiraService: MovimentacaoFinanceiraService,
+    private readonly tagService: TagService,
+    private readonly fb: FormBuilder
+  ) {
+    this.renomearForm = this.fb.group({
+      nome: ['', Validators.required]
+    });
+    this.adicionarUsuarioForm = this.fb.group({
+      email: [''],
+      permissao: [PainelPermissao.Membro]
+    });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -86,6 +275,119 @@ export class PainelDetalhe implements OnInit {
         this.carregando.set(false);
       },
     });
+
+    this.carregarDados(id);
+    this.carregarTags(id);
+  }
+
+  private carregarTags(idPainel: string): void {
+    this.tagService.listar(idPainel).subscribe({
+      next: (tags) => this.nomeTagPorId.set(new Map(tags.map((t) => [t.id, t.nome]))),
+      error: () => {
+        // Não bloqueia a tela por isso — tags apenas continuam exibidas com o placeholder de
+        // fallback em tagsLancamento(), nunca o GUID cru.
+      }
+    });
+  }
+
+  tagsLancamento(l: ResponseMovimentacaoDto): string[] {
+    const mapa = this.nomeTagPorId();
+    return (l.idsTags ?? []).map((id) => mapa.get(id) ?? TAG_INDISPONIVEL);
+  }
+
+  private filtroApiAtual(idPainel: string): GetMovimentacaoFiltroDto {
+    const filtro = this.filtro();
+    return {
+      idPainel,
+      competencia: competenciaFiltroParaInteiro(filtro.competencia),
+      idCategoria: filtro.categoria ? ID_CATEGORIA_POR_NOME[filtro.categoria] : undefined,
+      status: filtro.status ? STATUS_FILTRO_PARA_API[filtro.status] : undefined
+    };
+  }
+
+  private carregarDados(idPainel: string): void {
+    this.carregarLancamentos(idPainel);
+    this.carregarAgregacao(idPainel);
+  }
+
+  private carregarLancamentos(idPainel: string): void {
+    this.carregandoLancamentos.set(true);
+    this.erroLancamentos.set(undefined);
+
+    const filtroApi: GetMovimentacaoFiltroDto = {
+      ...this.filtroApiAtual(idPainel),
+      pagina: 1,
+      tamanhoPagina: TAMANHO_PAGINA_API
+    };
+
+    this.movimentacaoFinanceiraService
+      .consultar(filtroApi)
+      .pipe(finalize(() => this.carregandoLancamentos.set(false)))
+      .subscribe({
+        next: (resposta) => {
+          this.lancamentos.set(resposta.movimentacoes);
+          this.totalRegistrosLancamentos.set(resposta.totalRegistros);
+          this.temMaisLancamentosNoServidor.set(resposta.temProximaPagina);
+        },
+        error: () => this.erroLancamentos.set('Não foi possível carregar os lançamentos.')
+      });
+  }
+
+  // Filtro por tag é aplicado só no cliente (idsTags guarda texto livre, ver
+  // lancamentosFiltrados) — a API não sabe filtrar por ele, então a agregação do servidor
+  // não reflete esse filtro. Quando há tag(s) selecionada(s), os KPIs caem no fallback
+  // client-side (getters totalEntradas/totalSaidas/saldo) em vez de usar `agregacao()`.
+  private carregarAgregacao(idPainel: string): void {
+    this.movimentacaoFinanceiraService.obterAgregacao(this.filtroApiAtual(idPainel)).subscribe({
+      next: (dados) => this.agregacao.set(dados),
+      error: () => this.agregacao.set(undefined)
+    });
+  }
+
+  aoFiltroAlterado(filtro: FiltroMovimentacoesDto): void {
+    this.filtro.set(filtro);
+    this.paginaAtual.set(1);
+    const painel = this.painel();
+    if (painel) {
+      this.carregarDados(painel.id);
+    }
+  }
+
+  aoMovimentacaoAlterada(atualizada: ResponseMovimentacaoDto): void {
+    this.lancamentos.update((lista) => lista.map((l) => (l.id === atualizada.id ? atualizada : l)));
+    const painel = this.painel();
+    if (painel) {
+      this.carregarTags(painel.id);
+      this.carregarAgregacao(painel.id);
+    }
+  }
+
+  paginaAnteriorLancamentos(): void {
+    if (this.paginaAtual() > 1) {
+      this.paginaAtual.update((pagina) => pagina - 1);
+    }
+  }
+
+  proximaPaginaLancamentos(): void {
+    if (this.paginaAtual() < this.totalPaginasLancamentos()) {
+      this.paginaAtual.update((pagina) => pagina + 1);
+    }
+  }
+
+  descricaoLancamento(l: ResponseMovimentacaoDto): string {
+    return l.observacao?.trim() || (l.tipo === TipoMovimentacao.Receita ? 'Receita' : 'Despesa');
+  }
+
+  categoriaLancamento(l: ResponseMovimentacaoDto): string {
+    return NOME_CATEGORIA[l.idCategoria] ?? l.idCategoria;
+  }
+
+  competenciaLancamento(l: ResponseMovimentacaoDto): string {
+    return formatarCompetencia(l.competencia);
+  }
+
+  valorComSinal(l: ResponseMovimentacaoDto): number {
+    return l.tipo === TipoMovimentacao.Despesa ? -Math.abs(l.valor) : Math.abs(l.valor);
   }
 
   get papelDoUsuario(): { label: string; classe: string } | undefined {
@@ -110,16 +412,75 @@ export class PainelDetalhe implements OnInit {
     return permissao === PainelPermissao.Dono || permissao === PainelPermissao.Administrador;
   }
 
+  get podeExcluir(): boolean {
+    const painel = this.painel();
+    if (!painel) {
+      return false;
+    }
+    const usuarioAtualId = this.accountService.usuarioAtual?.id;
+    const usuario = painel.usuarios?.find((u) => u.id === usuarioAtualId);
+    const permissao = usuario?.idPermissao ?? PainelPermissao.Visualizador;
+    return permissao === PainelPermissao.Dono;
+  }
+
+  get entradasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Receita);
+  }
+
+  get saidasFiltradas(): ResponseMovimentacaoDto[] {
+    return this.lancamentosFiltrados().filter((l) => l.tipo === TipoMovimentacao.Despesa);
+  }
+
+  // A agregação do servidor cobre todo o conjunto filtrado (não só a página carregada), mas
+  // não sabe filtrar por tag (filtro client-side, ver `lancamentosFiltrados`). Com tag(s)
+  // selecionada(s), os KPIs caem no cálculo local sobre os lançamentos já carregados — mesma
+  // limitação de sempre, documentada aqui em vez de silenciosa.
+  private get usaAgregacaoServidor(): boolean {
+    return this.filtro().tags.length === 0 && this.agregacao() !== undefined;
+  }
+
   get totalEntradas(): number {
-    return this.transacoes.filter((t) => t.valor > 0).reduce((soma, t) => soma + t.valor, 0);
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.totalReceitas;
+    }
+    return this.entradasFiltradas.reduce((soma, l) => soma + l.valor, 0);
   }
 
   get totalSaidas(): number {
-    return this.transacoes.filter((t) => t.valor < 0).reduce((soma, t) => soma + t.valor, 0);
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return -agregacao.totalDespesas;
+    }
+    return this.saidasFiltradas.reduce((soma, l) => soma - l.valor, 0);
   }
 
   get saldo(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.saldo;
+    }
     return this.totalEntradas + this.totalSaidas;
+  }
+
+  get quantidadeEntradas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.quantidadeEntradas;
+    }
+    return this.entradasFiltradas.length;
+  }
+
+  get quantidadeSaidas(): number {
+    const agregacao = this.agregacao();
+    if (this.usaAgregacaoServidor && agregacao) {
+      return agregacao.quantidadeSaidas;
+    }
+    return this.saidasFiltradas.length;
+  }
+
+  statusLancamentoInfo(status: StatusMovimentacao): { label: string; classe: string } {
+    return STATUS_MOVIMENTACAO_INFO[status] ?? STATUS_DESCONHECIDO;
   }
 
   iniciaisUsuario(firstName?: string, lastName?: string): string {
@@ -130,6 +491,394 @@ export class PainelDetalhe implements OnInit {
 
   voltar(): void {
     this.router.navigateByUrl('/paineis');
+  }
+
+  abrirRegistrarMovimentacao(): void {
+    if (!this.painel()) {
+      return;
+    }
+    this.modalRegistrarAberto.set(true);
+  }
+
+  fecharRegistrarMovimentacao(): void {
+    this.modalRegistrarAberto.set(false);
+  }
+
+  aoRegistrarMovimentacao(): void {
+    const painel = this.painel();
+    if (painel) {
+      this.carregarDados(painel.id);
+      this.carregarTags(painel.id);
+    }
+  }
+
+  abrirRenomear(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+    this.renomearForm.setValue({ nome: painel.nome ?? '' });
+    this.erroRenomear.set(undefined);
+    this.renomearAberto.set(true);
+  }
+
+  fecharRenomear(): void {
+    this.renomearAberto.set(false);
+  }
+
+  salvarRenomear(): void {
+    const painel = this.painel();
+    if (!painel || this.renomearForm.invalid) {
+      this.renomearForm.markAllAsTouched();
+      return;
+    }
+
+    this.renomeando.set(true);
+    this.erroRenomear.set(undefined);
+
+    const { nome } = this.renomearForm.value;
+
+    this.painelService.atualizarPainel({ id: painel.id, nome }).pipe(
+      finalize(() => this.renomeando.set(false))
+    ).subscribe({
+      next: (painelAtualizado) => {
+        this.painel.set(painelAtualizado);
+        this.renomearAberto.set(false);
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroRenomear.set(erros[0]?.descricao ?? 'Não foi possível renomear o painel. Tente novamente.');
+      }
+    });
+  }
+
+  abrirExcluir(): void {
+    this.menuAcoesAberto = false;
+    this.erroExcluir.set(undefined);
+    this.excluirAberto.set(true);
+  }
+
+  fecharExcluir(): void {
+    this.excluirAberto.set(false);
+  }
+
+  confirmarExcluir(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.excluindo.set(true);
+    this.erroExcluir.set(undefined);
+
+    this.painelService.deletarPainel(painel.id).pipe(
+      finalize(() => this.excluindo.set(false))
+    ).subscribe({
+      next: () => {
+        this.router.navigateByUrl('/paineis');
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroExcluir.set(erros[0]?.descricao ?? 'Não foi possível excluir o painel. Tente novamente.');
+      }
+    });
+  }
+
+  abrirUsuarios(): void {
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+    this.adicionarUsuarioForm.reset({ email: '', permissao: PainelPermissao.Membro });
+    this.usuarioParaRemover.set(undefined);
+    this.erroRemoverUsuario.set(undefined);
+    this.papeisPendentes.set({});
+    this.errosAlterarPapel.set({});
+    this.usuariosAberto.set(true);
+  }
+
+  podeFecharUsuarios(): boolean {
+    return !this.adicionandoUsuario() && !this.removendoUsuarioId() && !this.salvandoAlteracoes();
+  }
+
+  fecharUsuarios(): void {
+    if (!this.podeFecharUsuarios()) {
+      return;
+    }
+    this.papeisPendentes.set({});
+    this.errosAlterarPapel.set({});
+    this.usuariosAberto.set(false);
+    this.usuariosAba.set('usuarios');
+  }
+
+  concluirUsuarios(): void {
+    if (!this.podeFecharUsuarios()) {
+      return;
+    }
+
+    const pendentes = this.papeisPendentes();
+    const idsPendentes = Object.keys(pendentes);
+
+    if (idsPendentes.length === 0) {
+      this.usuariosAberto.set(false);
+      this.usuariosAba.set('usuarios');
+      return;
+    }
+
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.salvandoAlteracoes.set(true);
+    const novosErros: Record<string, string> = {};
+
+    const chamadas = idsPendentes.map((idUsuario) =>
+      this.painelService.editarPermissaoUsuarioPainel(painel.id, idUsuario, pendentes[idUsuario]).pipe(
+        tap((painelAtualizado) => this.painel.set(painelAtualizado)),
+        catchError((error) => {
+          const erros = (error?.error ?? []) as Erro[];
+          novosErros[idUsuario] = erros[0]?.descricao ?? 'Não foi possível alterar o papel desse usuário. Tente novamente.';
+          return of(undefined);
+        })
+      )
+    );
+
+    concat(...chamadas).pipe(
+      finalize(() => {
+        this.salvandoAlteracoes.set(false);
+        this.errosAlterarPapel.set(novosErros);
+
+        const pendentesRestantes: Record<string, PainelPermissao> = {};
+        for (const idUsuario of Object.keys(novosErros)) {
+          pendentesRestantes[idUsuario] = pendentes[idUsuario];
+        }
+        this.papeisPendentes.set(pendentesRestantes);
+
+        if (Object.keys(novosErros).length === 0) {
+          this.usuariosAberto.set(false);
+          this.usuariosAba.set('usuarios');
+        }
+      })
+    ).subscribe();
+  }
+
+  abrirAbaModal(aba: 'usuarios' | 'convites'): void {
+    this.usuariosAba.set(aba);
+    if (aba === 'convites' && !this.convitesCarregados()) {
+      this.carregarConvites();
+    }
+  }
+
+  private carregarConvites(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    this.carregandoConvites.set(true);
+    this.erroConvites.set(undefined);
+
+    this.conviteService.listarConvites(painel.id).subscribe({
+      next: (resposta) => {
+        this.convites.set(resposta.convites ?? []);
+        this.convitesCarregados.set(true);
+        this.carregandoConvites.set(false);
+      },
+      error: () => {
+        this.erroConvites.set('Não foi possível carregar os convites enviados.');
+        this.carregandoConvites.set(false);
+      }
+    });
+  }
+
+  statusInfo(status: StatusConvite): { label: string; classe: string } {
+    return STATUS_INFO[status] ?? STATUS_DESCONHECIDO;
+  }
+
+  podeReenviar(status: StatusConvite): boolean {
+    return status === StatusConvite.Recusado || status === StatusConvite.Expirado;
+  }
+
+  reenviarConvite(convite: ResponseConviteDto): void {
+    const painel = this.painel();
+    if (!painel || !convite.emailConvidado) {
+      return;
+    }
+
+    this.reenviandoConviteId.set(convite.id);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email: convite.emailConvidado,
+        permissao: convite.permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .pipe(finalize(() => this.reenviandoConviteId.set(undefined)))
+      .subscribe({
+        next: () => this.carregarConvites(),
+        error: () => {
+          this.erroConvites.set('Não foi possível reenviar o convite. Tente novamente.');
+        }
+      });
+  }
+
+  ehUsuarioLogado(usuarioId: string): boolean {
+    return usuarioId === this.accountService.usuarioAtual?.id;
+  }
+
+  papelInfo(permissao: PainelPermissao): { label: string; classe: string } {
+    return PAPEL_INFO[permissao];
+  }
+
+  adicionarUsuario(): void {
+    const painel = this.painel();
+    if (!painel) {
+      return;
+    }
+
+    const email = (this.adicionarUsuarioForm.value.email ?? '').trim().toLowerCase();
+    const permissao = this.adicionarUsuarioForm.value.permissao as PainelPermissao;
+
+    this.erroAdicionarUsuario.set(undefined);
+    this.avisoAdicionarUsuario.set(undefined);
+
+    if (!EMAIL_REGEX.test(email)) {
+      this.erroAdicionarUsuario.set('Informe um e-mail válido.');
+      return;
+    }
+
+    const emailUsuarioAtual = this.accountService.usuarioAtual?.email?.trim().toLowerCase();
+    if (emailUsuarioAtual && email === emailUsuarioAtual) {
+      this.erroAdicionarUsuario.set('Você não pode se adicionar.');
+      return;
+    }
+
+    const jaEhMembro = painel.usuarios?.some((u) => u.email?.trim().toLowerCase() === email);
+    if (jaEhMembro) {
+      this.erroAdicionarUsuario.set('Este e-mail já é membro do painel.');
+      return;
+    }
+
+    this.adicionandoUsuario.set(true);
+
+    this.conviteService
+      .criarConvite(painel.id, {
+        email,
+        permissao,
+        urlFrontend: `${window.location.origin}/convites`
+      })
+      .subscribe({
+        next: () => {
+          this.painelService.obterPainel(painel.id).subscribe({
+            next: (painelAtualizado) => {
+              this.painel.set(painelAtualizado);
+              this.adicionandoUsuario.set(false);
+
+              const agoraEhMembro = painelAtualizado.usuarios?.some(
+                (u) => u.email?.trim().toLowerCase() === email
+              );
+              if (agoraEhMembro) {
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              } else {
+                this.avisoAdicionarUsuario.set(
+                  `Convite enviado para ${email}. A pessoa entra no painel assim que aceitar.`
+                );
+                this.adicionarUsuarioForm.patchValue({ email: '', permissao: PainelPermissao.Membro });
+              }
+            },
+            error: () => {
+              this.adicionandoUsuario.set(false);
+              this.avisoAdicionarUsuario.set(
+                `Convite enviado para ${email}, mas não foi possível atualizar a lista agora. Feche e reabra o modal para ver o resultado.`
+              );
+            }
+          });
+        },
+        error: (error) => {
+          this.adicionandoUsuario.set(false);
+          const erros = (error?.error ?? []) as Erro[];
+          this.erroAdicionarUsuario.set(
+            erros[0]?.descricao ?? 'Não foi possível adicionar esse usuário. Tente novamente.'
+          );
+        }
+      });
+  }
+
+  ehDono(permissao?: PainelPermissao): boolean {
+    return permissao === PainelPermissao.Dono;
+  }
+
+  abrirRemoverUsuario(usuario: PainelUsuarioDto): void {
+    this.erroRemoverUsuario.set(undefined);
+    this.usuarioParaRemover.set(usuario);
+  }
+
+  fecharRemoverUsuario(): void {
+    if (this.removendoUsuarioId()) {
+      return;
+    }
+    this.usuarioParaRemover.set(undefined);
+  }
+
+  confirmarRemoverUsuario(): void {
+    const painel = this.painel();
+    const usuarioAlvo = this.usuarioParaRemover();
+    if (!painel || !usuarioAlvo) {
+      return;
+    }
+
+    this.removendoUsuarioId.set(usuarioAlvo.id);
+    this.erroRemoverUsuario.set(undefined);
+
+    this.painelService.removerUsuarioPainel(painel.id, usuarioAlvo.id).pipe(
+      finalize(() => this.removendoUsuarioId.set(undefined))
+    ).subscribe({
+      next: (painelAtualizado) => {
+        this.usuarioParaRemover.set(undefined);
+
+        if (this.ehUsuarioLogado(usuarioAlvo.id)) {
+          this.usuariosAberto.set(false);
+          this.router.navigateByUrl('/paineis');
+          return;
+        }
+
+        this.painel.set(painelAtualizado);
+        this.papeisPendentes.update((pendentes) => {
+          const { [usuarioAlvo.id]: _removido, ...resto } = pendentes;
+          return resto;
+        });
+        this.errosAlterarPapel.update((erros) => {
+          const { [usuarioAlvo.id]: _removido, ...resto } = erros;
+          return resto;
+        });
+      },
+      error: (error) => {
+        const erros = (error?.error ?? []) as Erro[];
+        this.erroRemoverUsuario.set(
+          erros[0]?.descricao ?? 'Não foi possível remover esse usuário. Tente novamente.'
+        );
+      }
+    });
+  }
+
+  papelExibido(usuario: PainelUsuarioDto): PainelPermissao | undefined {
+    return this.papeisPendentes()[usuario.id] ?? usuario.idPermissao;
+  }
+
+  definirPapelPendente(usuario: PainelUsuarioDto, novaPermissao: PainelPermissao): void {
+    this.errosAlterarPapel.update((erros) => {
+      const { [usuario.id]: _removido, ...resto } = erros;
+      return resto;
+    });
+
+    if (novaPermissao === usuario.idPermissao) {
+      this.papeisPendentes.update((pendentes) => {
+        const { [usuario.id]: _removido, ...resto } = pendentes;
+        return resto;
+      });
+      return;
+    }
+
+    this.papeisPendentes.update((pendentes) => ({ ...pendentes, [usuario.id]: novaPermissao }));
   }
 
   irPara(item: NavItem): void {
@@ -153,6 +902,9 @@ export class PainelDetalhe implements OnInit {
   onDocumentClick(event: MouseEvent): void {
     if (this.menuUsuarioAberto && !this.sidebarFooter?.nativeElement.contains(event.target as Node)) {
       this.menuUsuarioAberto = false;
+    }
+    if (this.menuAcoesAberto && !this.menuAcoes?.nativeElement.contains(event.target as Node)) {
+      this.menuAcoesAberto = false;
     }
   }
 }

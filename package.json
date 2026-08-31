@@ -4,6 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 0.0.0.0 --ssl --ssl-cert ssl/dev-server.crt --ssl-key ssl/dev-server.key",
+    "start:ssr": "ng build --configuration development && node dist/dashfinras-web/server/server.mjs",
+    "start:dev": "concurrently -k -n ui,ssr \"npm:start\" \"npm:start:ssr\"",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
@@ -19,8 +21,14 @@
     "@angular/forms": "^22.1.0",
     "@angular/material": "^22.1.3",
     "@angular/platform-browser": "^22.1.0",
+    "@angular/platform-server": "^22.1.0",
     "@angular/router": "^22.1.0",
+    "@angular/ssr": "^22.1.5",
     "@supabase/supabase-js": "^2.112.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^4.2.0",
+    "iron-session": "^8.0.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -28,8 +36,13 @@
     "@angular/build": "^22.1.5",
     "@angular/cli": "^22.1.5",
     "@angular/compiler-cli": "^22.1.0",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20.17.19",
+    "@types/supertest": "^7.2.1",
+    "concurrently": "^10.0.5",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
+    "supertest": "^7.2.2",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"
   }

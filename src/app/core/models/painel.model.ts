@@ -31,6 +31,10 @@ export interface RequestAddUsuarioPainelDto {
   permissao: PainelPermissao;
 }
 
+export interface RequestEditarPermissaoUsuarioPainelDto {
+  permissao: PainelPermissao;
+}
+
 export interface RequestAddPainelDto {
   nome: string;
   usuarios?: RequestAddUsuarioPainelDto[];

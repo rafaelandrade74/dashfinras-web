@@ -3,8 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  PainelPermissao,
   RequestAddPainelDto,
   RequestAddUsuarioPainelDto,
+  RequestEditarPermissaoUsuarioPainelDto,
   RequestUpdatePainelDto,
   ResponsePaineisDto,
   ResponsePainelDto
@@ -34,6 +36,21 @@ export class PainelService {
 
   adicionarUsuarioPainel(id: string, usuarios: RequestAddUsuarioPainelDto[]): Observable<ResponsePainelDto> {
     return this.http.put<ResponsePainelDto>(`${this.baseUrl}/${id}/adicionar-usuario`, usuarios);
+  }
+
+  removerUsuarioPainel(idPainel: string, idUsuario: string): Observable<ResponsePainelDto> {
+    return this.http.delete<ResponsePainelDto>(`${this.baseUrl}/${idPainel}/usuario/${idUsuario}`);
+  }
+
+  editarPermissaoUsuarioPainel(
+    idPainel: string,
+    idUsuario: string,
+    permissao: PainelPermissao
+  ): Observable<ResponsePainelDto> {
+    return this.http.put<ResponsePainelDto>(
+      `${this.baseUrl}/${idPainel}/usuario/${idUsuario}/permissao`,
+      { permissao } as RequestEditarPermissaoUsuarioPainelDto
+    );
   }
 
   deletarPainel(id: string): Observable<void> {

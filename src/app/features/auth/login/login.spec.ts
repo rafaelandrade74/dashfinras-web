@@ -1,36 +1,60 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { Login } from './login';
 
 describe('Login', () => {
   let component: Login;
   let fixture: ComponentFixture<Login>;
+  let router: Router;
   let authServiceMock: {
     login: ReturnType<typeof vi.fn>;
     signUp: ReturnType<typeof vi.fn>;
     resetPassword: ReturnType<typeof vi.fn>;
+    isAuthenticated: boolean;
+    waitUntilReady: ReturnType<typeof vi.fn>;
   };
+
+  async function criarComponente(redirectUrl?: string): Promise<void> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, RouterModule.forRoot([])],
+      declarations: [Login],
+      providers: [
+        { provide: AuthService, useValue: authServiceMock },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: {
+                get: (chave: string) => (chave === 'redirectUrl' ? (redirectUrl ?? null) : null)
+              }
+            }
+          }
+        }
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(Login);
+    component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
 
   beforeEach(async () => {
     authServiceMock = {
       login: vi.fn().mockResolvedValue({}),
       signUp: vi.fn().mockResolvedValue({}),
-      resetPassword: vi.fn().mockResolvedValue({})
+      resetPassword: vi.fn().mockResolvedValue({}),
+      isAuthenticated: false,
+      waitUntilReady: vi.fn().mockResolvedValue(undefined)
     };
 
-    await TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule, RouterModule.forRoot([])],
-      declarations: [Login],
-      providers: [{ provide: AuthService, useValue: authServiceMock }],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(Login);
-    component = fixture.componentInstance;
-    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
-    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
-    await fixture.whenStable();
+    await criarComponente();
   });
 
   it('should create', () => {
@@ -170,5 +194,37 @@ describe('Login', () => {
     expect(authServiceMock.resetPassword).toHaveBeenCalledWith('rafael@exemplo.com');
     expect(component.modo()).toBe('forgot-sent');
     expect(component.emailRecuperacao()).toBe('rafael@exemplo.com');
+  });
+
+  describe('redirecionamento de usuário já autenticado', () => {
+    it('redireciona para /paineis quando autenticado e sem redirectUrl', async () => {
+      authServiceMock.isAuthenticated = true;
+      await criarComponente();
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/paineis');
+      expect(component.checandoSessao()).toBe(true);
+    });
+
+    it('redireciona para o redirectUrl quando é um caminho interno válido', async () => {
+      authServiceMock.isAuthenticated = true;
+      await criarComponente('/paineis/123');
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/paineis/123');
+    });
+
+    it('ignora um redirectUrl externo e redireciona para /paineis', async () => {
+      authServiceMock.isAuthenticated = true;
+      await criarComponente('https://evil.com');
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/paineis');
+    });
+
+    it('exibe o formulário de login normalmente quando não autenticado', async () => {
+      authServiceMock.isAuthenticated = false;
+      await criarComponente();
+
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(component.checandoSessao()).toBe(false);
+    });
   });
 });
