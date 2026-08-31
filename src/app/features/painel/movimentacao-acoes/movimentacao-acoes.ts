@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
-import { finalize, map, switchMap } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
 import { TagService } from '../../../core/services/tag.service';
 import { ResponseMovimentacaoDto, StatusMovimentacao } from '../../../core/models/movimentacao-financeira.model';
@@ -159,18 +159,21 @@ export class MovimentacaoAcoes {
 
     const nomesTags = this.tagsAtuais();
 
-    this.tagService
-      .resolverIdsPorNome(nomesTags, this.movimentacao.idPainel)
+    // A API faz o get-or-create por nome no próprio POST /tags, escopado ao painel da
+    // movimentação (011-tags-atreladas-ao-painel) — não é mais preciso resolver nome -> id
+    // no cliente antes de associar. Ela não retorna a movimentação atualizada (Observable<void>),
+    // então busca as tags do painel de novo depois para resolver os ids e refletir na UI:
+    // como a associação já garantiu que cada nome existe, a busca sempre encontra todos.
+    this.movimentacaoService
+      .associarTags(this.movimentacao.id, nomesTags)
       .pipe(
-        switchMap((idsTags) =>
-          this.movimentacaoService.associarTags(this.movimentacao.id, idsTags).pipe(map(() => idsTags))
-        ),
+        switchMap(() => this.tagService.listar(this.movimentacao.idPainel)),
         finalize(() => this.salvandoTags.set(false))
       )
       .subscribe({
-        next: (idsTags) => {
-          // A API não retorna a movimentação atualizada nesta chamada (Observable<void>);
-          // reconstrói localmente a partir dos ids resolvidos para refletir na UI.
+        next: (tags) => {
+          const idPorNomeLower = new Map(tags.map((tag) => [tag.nome.toLowerCase(), tag.id]));
+          const idsTags = nomesTags.map((nome) => idPorNomeLower.get(nome.toLowerCase()) ?? nome);
           const atualizada: ResponseMovimentacaoDto = { ...this.movimentacao, idsTags };
           this.tagsAberto.set(false);
           this.alterada.emit(atualizada);

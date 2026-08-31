@@ -8,13 +8,6 @@ export enum StatusMovimentacao {
   Pago = 1
 }
 
-export interface TagDto {
-  id: string;
-  idUsuario?: string;
-  nome: string;
-  criadoEm?: string;
-}
-
 export interface ResponseMovimentacaoDto {
   id: string;
   idPainel: string;
@@ -47,8 +40,13 @@ export interface RequestMarcarComoPagoDto {
   dataPagamento: string;
 }
 
+/**
+ * A API resolve por nome (get-or-create escopado ao painel da movimentação, trim +
+ * case-insensitive) desde 011-tags-atreladas-ao-painel — o cliente não resolve mais
+ * nome -> id antes de associar.
+ */
 export interface RequestAssociarTagsDto {
-  idsTags: string[];
+  nomes: string[];
 }
 
 export interface GetMovimentacaoFiltroDto {
