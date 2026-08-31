@@ -5,5 +5,6 @@ export interface ResponseTagDto {
 }
 
 export interface RequestCriarTagDto {
+  idPainel: string;
   nome: string;
 }

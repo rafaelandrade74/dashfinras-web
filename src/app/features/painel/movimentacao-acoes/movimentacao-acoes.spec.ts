@@ -175,7 +175,7 @@ describe('MovimentacaoAcoes', () => {
       expect(component.tagsAtuais()).toEqual([]);
     });
 
-    it('em sucesso, chama o service com idsTags resolvidos, fecha o modal e emite a movimentação atualizada', () => {
+    it('em sucesso, chama o service com os nomes das tags, fecha o modal e emite a movimentação atualizada', () => {
       component.abrirTags();
       flushListarTags();
       component.removerTag('recorrente');
@@ -187,21 +187,21 @@ describe('MovimentacaoAcoes', () => {
 
       component.salvarTags();
 
-      // resolverIdsPorNome busca a lista de tags de novo para achar o id de "cartão"
-      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
-      expect(reqListar.request.method).toBe('GET');
-      reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
-
-      const reqCriar = httpMock.expectOne((r) => r.url === '/api/tag');
-      expect(reqCriar.request.method).toBe('POST');
-      expect(reqCriar.request.body).toEqual({ nome: 'cartão' });
-      reqCriar.flush({ id: 'tag-cartao-id', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' });
-
       const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ idsTags: ['tag-cartao-id'] });
-
+      expect(req.request.body).toEqual({ nomes: ['cartão'] });
       req.flush(null);
+
+      // Depois de associar, mapearIdsPorNome busca a lista de tags do painel de novo para
+      // resolver "cartão" (já criada pela API) para o id real.
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
+      expect(reqListar.request.method).toBe('GET');
+      reqListar.flush({
+        tags: [
+          { id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' },
+          { id: 'tag-cartao-id', nome: 'cartão', criadoEm: '2026-08-01T00:00:00Z' }
+        ]
+      });
 
       expect(component.tagsAberto()).toBe(false);
       expect(emitida).toHaveBeenCalledWith(
@@ -220,25 +220,23 @@ describe('MovimentacaoAcoes', () => {
       expect(component.tagsAtuais()).toEqual(['recorrente', 'promoção']);
       expect(component.novaTag()).toBe('');
 
-      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
-      reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
-      const reqCriar = httpMock.expectOne((r) => r.url === '/api/tag');
-      expect(reqCriar.request.body).toEqual({ nome: 'promoção' });
-      reqCriar.flush({ id: 'tag-promo-id', nome: 'promoção', criadoEm: '2026-08-01T00:00:00Z' });
-
       const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
-      expect(req.request.body).toEqual({ idsTags: ['tag-recorrente-id', 'tag-promo-id'] });
+      expect(req.request.body).toEqual({ nomes: ['recorrente', 'promoção'] });
       req.flush(null);
+
+      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
+      reqListar.flush({
+        tags: [
+          { id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' },
+          { id: 'tag-promo-id', nome: 'promoção', criadoEm: '2026-08-01T00:00:00Z' }
+        ]
+      });
     });
 
     it('em erro da API, mantém o modal aberto e exibe a mensagem', () => {
       component.abrirTags();
       flushListarTags();
       component.salvarTags();
-
-      // sem tags novas para adicionar (removeu tudo não aconteceu aqui) -> ainda resolve a existente
-      const reqListar = httpMock.expectOne((r) => r.url === '/api/tag');
-      reqListar.flush({ tags: [{ id: 'tag-recorrente-id', nome: 'recorrente', criadoEm: '2026-08-01T00:00:00Z' }] });
 
       const req = httpMock.expectOne(`/api/movimentacao/${component.movimentacao.id}/tags`);
       req.flush([{ descricao: 'Não foi possível salvar as tags agora.' }], { status: 500, statusText: 'Server Error' });

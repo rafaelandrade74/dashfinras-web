@@ -39,8 +39,8 @@ export class MovimentacaoFinanceiraService {
     );
   }
 
-  associarTags(id: string, idsTags: string[]): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/${id}/tags`, { idsTags } as RequestAssociarTagsDto);
+  associarTags(id: string, nomes: string[]): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/tags`, { nomes } as RequestAssociarTagsDto);
   }
 
   cancelar(id: string): Observable<void> {

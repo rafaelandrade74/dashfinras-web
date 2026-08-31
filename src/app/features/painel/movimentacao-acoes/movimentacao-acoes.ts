@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
-import { finalize, map, switchMap } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
 import { TagService } from '../../../core/services/tag.service';
 import { ResponseMovimentacaoDto, StatusMovimentacao } from '../../../core/models/movimentacao-financeira.model';
@@ -113,9 +113,8 @@ export class MovimentacaoAcoes {
     }
 
     // idsTags guarda os Guids reais das tags; a UI trabalha com nomes, então resolve
-    // id -> nome buscando as tags do painel (não só as do usuário autenticado) antes de
-    // exibir os chips — sem idPainel, um convidado editando tags criadas pelo dono via
-    // movimentacao-acoes cai no mesmo bug de GUID cru já corrigido em painel-detalhe.ts.
+    // id -> nome buscando as tags do painel (de qualquer membro, não só quem criou) antes
+    // de exibir os chips.
     this.tagService.listar(this.movimentacao.idPainel).subscribe({
       next: (tags) => {
         const nomePorId = new Map(tags.map((tag) => [tag.id, tag.nome]));
@@ -159,12 +158,13 @@ export class MovimentacaoAcoes {
 
     const nomesTags = this.tagsAtuais();
 
-    this.tagService
-      .resolverIdsPorNome(nomesTags, this.movimentacao.idPainel)
+    this.movimentacaoService
+      .associarTags(this.movimentacao.id, nomesTags)
       .pipe(
-        switchMap((idsTags) =>
-          this.movimentacaoService.associarTags(this.movimentacao.id, idsTags).pipe(map(() => idsTags))
-        ),
+        // A API não retorna a movimentação atualizada nesse endpoint: resolve os nomes recém
+        // salvos para os ids reais (a tag nova já existe no servidor a essa altura) para
+        // reconstruir idsTags localmente antes de emitir `alterada`.
+        switchMap(() => this.tagService.mapearIdsPorNome(nomesTags, this.movimentacao.idPainel)),
         finalize(() => this.salvandoTags.set(false))
       )
       .subscribe({
