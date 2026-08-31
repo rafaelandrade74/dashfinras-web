@@ -160,9 +160,9 @@ export class PainelDetalhe implements OnInit {
     tags: []
   });
 
-  // Tags ainda não são entidades reais no backend (ver movimentacao-acoes.ts): tanto o
-  // registro quanto a associação de tags guardam texto livre em idsTags. O filtro por
-  // tag, por isso, é aplicado no cliente sobre o que já veio filtrado pelo servidor.
+  // A API não suporta filtrar movimentações por nome de tag (só idsTags é conhecido no
+  // cliente via nomeTagPorId). O filtro por tag, por isso, é aplicado no cliente sobre o
+  // que já veio filtrado pelo servidor pelos demais critérios.
   readonly lancamentosFiltrados = computed(() => {
     const tagsFiltro = this.filtro().tags.map((tag) => tag.toLowerCase());
     const lista = this.lancamentos();

@@ -105,14 +105,14 @@ describe('MovimentacaoFinanceiraService', () => {
     expect(erro).toBeTruthy();
   });
 
-  it('associarTags envia PUT com a lista de ids', () => {
+  it('associarTags envia POST com a lista de nomes', () => {
     let concluiu = false;
 
-    service.associarTags('mov-1', ['tag-1', 'tag-2']).subscribe(() => (concluiu = true));
+    service.associarTags('mov-1', ['recorrente', 'cartão']).subscribe(() => (concluiu = true));
 
     const req = httpMock.expectOne(`${baseUrl}/mov-1/tags`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ idsTags: ['tag-1', 'tag-2'] });
+    expect(req.request.body).toEqual({ nomes: ['recorrente', 'cartão'] });
     req.flush(null);
 
     expect(concluiu).toBe(true);
@@ -121,7 +121,7 @@ describe('MovimentacaoFinanceiraService', () => {
   it('associarTags propaga erro do servidor', () => {
     let erro: unknown;
 
-    service.associarTags('mov-1', ['tag-1']).subscribe({ error: (err) => (erro = err) });
+    service.associarTags('mov-1', ['recorrente']).subscribe({ error: (err) => (erro = err) });
 
     const req = httpMock.expectOne(`${baseUrl}/mov-1/tags`);
     req.flush({ message: 'erro' }, { status: 400, statusText: 'Bad Request' });

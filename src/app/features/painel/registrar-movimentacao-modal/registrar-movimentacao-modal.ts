@@ -5,7 +5,6 @@ import { finalize, of, switchMap } from 'rxjs';
 import { Erro } from '../../../core/models/erro.model';
 import { RequestRegistrarMovimentacaoDto, TipoMovimentacao } from '../../../core/models/movimentacao-financeira.model';
 import { MovimentacaoFinanceiraService } from '../../../core/services/movimentacao-financeira.service';
-import { TagService } from '../../../core/services/tag.service';
 
 export interface CategoriaResumoDto {
   id: string;
@@ -73,8 +72,7 @@ export class RegistrarMovimentacaoModal implements OnChanges {
 
   constructor(
     private readonly fb: FormBuilder,
-    private readonly movimentacaoService: MovimentacaoFinanceiraService,
-    private readonly tagService: TagService
+    private readonly movimentacaoService: MovimentacaoFinanceiraService
   ) {
     this.form = this.fb.group({
       tipo: [TipoMovimentacao.Despesa, Validators.required],
@@ -179,9 +177,7 @@ export class RegistrarMovimentacaoModal implements OnChanges {
       .pipe(
         switchMap((movimentacao) =>
           nomesTags.length
-            ? this.tagService
-                .resolverIdsPorNome(nomesTags, this.idPainel)
-                .pipe(switchMap((idsTags) => this.movimentacaoService.associarTags(movimentacao.id, idsTags)))
+            ? this.movimentacaoService.associarTags(movimentacao.id, nomesTags)
             : of(null)
         ),
         finalize(() => this.registrando.set(false))

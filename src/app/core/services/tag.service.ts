@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { RequestCriarTagDto, ResponseTagDto } from '../models/tag.model';
 
@@ -10,59 +10,34 @@ export class TagService {
 
   constructor(private readonly http: HttpClient) {}
 
-  criar(nome: string): Observable<ResponseTagDto> {
-    return this.http.post<ResponseTagDto>(this.baseUrl, { nome } as RequestCriarTagDto);
+  criar(nome: string, idPainel: string): Observable<ResponseTagDto> {
+    return this.http.post<ResponseTagDto>(this.baseUrl, { idPainel, nome } as RequestCriarTagDto);
   }
 
-  /**
-   * Sem `idPainel`: tags do usuário autenticado (comportamento atual, usado por
-   * `resolverIdsPorNome` ao criar/associar tag). Com `idPainel`: tags associadas a lançamentos
-   * desse painel, de qualquer membro — necessário para que um convidado resolva nomes de tags
-   * criadas pelo dono/outros membros (ver specs/010-tags-painel-compartilhado). Enviar
-   * `idPainel` é seguro mesmo contra uma API que ainda não suporte o parâmetro: query strings
-   * desconhecidas são ignoradas pelo backend.
-   */
-  listar(idPainel?: string): Observable<ResponseTagDto[]> {
-    const params = idPainel ? new HttpParams().set('idPainel', idPainel) : undefined;
+  /** Lista as tags do painel (de qualquer membro) — `idPainel` é obrigatório na API. */
+  listar(idPainel: string): Observable<ResponseTagDto[]> {
+    const params = new HttpParams().set('idPainel', idPainel);
     return this.http
       .get<{ tags?: ResponseTagDto[] }>(this.baseUrl, { params })
       .pipe(map((resposta) => resposta.tags ?? []));
   }
 
   /**
-   * Resolve uma lista de nomes de tag para ids reais: reaproveita tags já existentes
-   * (comparação case-insensitive) e cria as que ainda não existem. Necessário porque a UI
-   * ainda trabalha com texto livre para tags, mas a API só aceita idsTags (Guid) em
-   * MovimentacaoFinanceiraService.associarTags.
-   *
-   * `idPainel` (opcional) reaproveita tags de qualquer membro do painel, não só as do usuário
-   * autenticado — sem ele, um convidado que digita o nome de uma tag já criada pelo dono acaba
-   * criando uma tag duplicada em vez de reaproveitar a existente (ver movimentacao-acoes.ts).
+   * Resolve uma lista de nomes de tag para os ids reais já existentes no painel
+   * (comparação case-insensitive), sem criar nada — usado só para reconciliar localmente
+   * `idsTags` (Guid) depois que `MovimentacaoFinanceiraService.associarTags` (que cria as tags
+   * que faltarem por nome, no servidor) já concluiu com sucesso.
    */
-  resolverIdsPorNome(nomes: string[], idPainel?: string): Observable<string[]> {
-    const vistos = new Set<string>();
-    const unicos: string[] = [];
-    for (const nome of nomes) {
-      const limpo = nome.trim();
-      const chave = limpo.toLowerCase();
-      if (!limpo || vistos.has(chave)) {
-        continue;
-      }
-      vistos.add(chave);
-      unicos.push(limpo);
-    }
-    if (unicos.length === 0) {
+  mapearIdsPorNome(nomes: string[], idPainel: string): Observable<string[]> {
+    if (nomes.length === 0) {
       return of([]);
     }
-
     return this.listar(idPainel).pipe(
-      switchMap((existentes) => {
+      map((existentes) => {
         const idPorNomeLower = new Map(existentes.map((tag) => [tag.nome.toLowerCase(), tag.id]));
-        const chamadas = unicos.map((nome) => {
-          const idExistente = idPorNomeLower.get(nome.toLowerCase());
-          return idExistente ? of(idExistente) : this.criar(nome).pipe(map((tag) => tag.id));
-        });
-        return forkJoin(chamadas);
+        return nomes
+          .map((nome) => idPorNomeLower.get(nome.trim().toLowerCase()))
+          .filter((id): id is string => !!id);
       })
     );
   }

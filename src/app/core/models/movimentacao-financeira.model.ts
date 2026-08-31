@@ -8,13 +8,6 @@ export enum StatusMovimentacao {
   Pago = 1
 }
 
-export interface TagDto {
-  id: string;
-  idUsuario?: string;
-  nome: string;
-  criadoEm?: string;
-}
-
 export interface ResponseMovimentacaoDto {
   id: string;
   idPainel: string;
@@ -48,7 +41,7 @@ export interface RequestMarcarComoPagoDto {
 }
 
 export interface RequestAssociarTagsDto {
-  idsTags: string[];
+  nomes: string[];
 }
 
 export interface GetMovimentacaoFiltroDto {
