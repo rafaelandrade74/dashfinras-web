@@ -1,0 +1,165 @@
+@if (aberto) {
+  <div class="backdrop">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h1>Registrar movimentação</h1>
+          @if (nomePainel) {
+            <div class="modal-sub">Painel {{ nomePainel }}</div>
+          }
+        </div>
+        <button type="button" class="btn-close" aria-label="Fechar" (click)="fecharModal()">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+        <div class="modal-body">
+          <div class="tipo-toggle">
+            <button
+              type="button"
+              class="tipo-btn"
+              [class.ativo-despesa]="form.controls['tipo'].value === TipoMovimentacao.Despesa"
+              (click)="selecionarTipo(TipoMovimentacao.Despesa)"
+            >
+              Despesa
+            </button>
+            <button
+              type="button"
+              class="tipo-btn"
+              [class.ativo-receita]="form.controls['tipo'].value === TipoMovimentacao.Receita"
+              (click)="selecionarTipo(TipoMovimentacao.Receita)"
+            >
+              Receita
+            </button>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="m-valor">Valor</label>
+              <input
+                id="m-valor"
+                type="text"
+                inputmode="numeric"
+                appMoedaMask
+                formControlName="valor"
+                placeholder="0,00"
+                [class.error]="form.controls['valor'].invalid && form.controls['valor'].touched"
+                autocomplete="off"
+              />
+              @if (form.controls['valor'].invalid && form.controls['valor'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe um valor maior que zero
+                </div>
+              }
+            </div>
+            <div class="field">
+              <label for="m-competencia">Competência</label>
+              <div class="input-com-icone">
+                <input
+                  id="m-competencia"
+                  type="text"
+                  formControlName="competencia"
+                  placeholder="MM/AAAA"
+                  [class.error]="form.controls['competencia'].invalid && form.controls['competencia'].touched"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="btn-icone-campo"
+                  aria-label="Escolher mês pelo calendário"
+                  (click)="competenciaPicker.open()"
+                >
+                  <i class="ti ti-calendar" aria-hidden="true"></i>
+                </button>
+                <input
+                  [matDatepicker]="competenciaPicker"
+                  [formControl]="competenciaDate"
+                  class="input-datepicker-oculto"
+                  tabindex="-1"
+                  aria-hidden="true"
+                />
+                <mat-datepicker
+                  #competenciaPicker
+                  startView="multi-year"
+                  (monthSelected)="selecionarMesCompetencia($event, competenciaPicker)"
+                ></mat-datepicker>
+              </div>
+              @if (form.controls['competencia'].invalid && form.controls['competencia'].touched) {
+                <div class="field-error" role="alert">
+                  <i class="ti ti-alert-circle" aria-hidden="true"></i> Informe a competência no formato MM/AAAA, com mês entre 01 e 12
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="m-categoria">Categoria</label>
+            <select
+              id="m-categoria"
+              formControlName="idCategoria"
+              [class.error]="form.controls['idCategoria'].invalid && form.controls['idCategoria'].touched"
+            >
+              <option value="" disabled>Selecione uma categoria</option>
+              @for (categoria of categorias; track categoria.id) {
+                <option [value]="categoria.id">{{ categoria.nome }}</option>
+              }
+            </select>
+            @if (form.controls['idCategoria'].invalid && form.controls['idCategoria'].touched) {
+              <div class="field-error" role="alert">
+                <i class="ti ti-alert-circle" aria-hidden="true"></i> Selecione uma categoria
+              </div>
+            }
+          </div>
+
+          <div class="field">
+            <label for="m-tags">Tags</label>
+            <div class="chips-input">
+              @for (tag of tags; track tag) {
+                <span class="chip">
+                  {{ tag }}
+                  <button type="button" aria-label="Remover tag" (click)="removerTag(tag)">×</button>
+                </span>
+              }
+              <input
+                id="m-tags"
+                #tagInput
+                type="text"
+                placeholder="Adicionar tag"
+                (keydown)="onTagKeydown($event, tagInput)"
+                (blur)="adicionarTag(tagInput)"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="m-obs">Observação (opcional)</label>
+            <textarea
+              id="m-obs"
+              rows="2"
+              formControlName="observacao"
+              placeholder="Ex.: parcela 3 de 6"
+            ></textarea>
+          </div>
+
+          @if (erroApi()) {
+            <div class="api-error" role="alert">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+              <span>{{ erroApi() }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="modal-foot">
+          <button type="button" class="btn-secundario" (click)="fecharModal()">Cancelar</button>
+          <button type="submit" class="btn-primario" [disabled]="registrando()">
+            @if (registrando()) {
+              <span class="spinner" aria-hidden="true"></span>
+            }
+            Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

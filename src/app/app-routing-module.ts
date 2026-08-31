@@ -19,6 +19,11 @@ const routes: Routes = [
     loadChildren: () => import('./features/cadastro/cadastro-module').then(m => m.CadastroModule)
   },
   {
+    path: 'convites/:token',
+    canActivate: [authGuard, accountGuard],
+    loadChildren: () => import('./features/convite/convite-module').then(m => m.ConviteModule)
+  },
+  {
     path: 'paineis',
     canActivate: [authGuard, accountGuard],
     loadChildren: () => import('./features/painel/painel-module').then(m => m.PainelModule)

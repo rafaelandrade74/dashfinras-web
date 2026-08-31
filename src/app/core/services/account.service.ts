@@ -9,7 +9,8 @@ export class AccountService {
   private readonly baseUrl = `${environment.apiUrl}/account`;
   private readonly usuarioAtualSubject = new BehaviorSubject<GetUserDto | undefined>(undefined);
 
-  readonly usuarioAtual$: Observable<GetUserDto | undefined> = this.usuarioAtualSubject.asObservable();
+  readonly usuarioAtual$: Observable<GetUserDto | undefined> =
+    this.usuarioAtualSubject.asObservable();
 
   constructor(private readonly http: HttpClient) {}
 
@@ -18,10 +19,14 @@ export class AccountService {
   }
 
   obterUsuario(): Observable<GetUserDto> {
-    return this.http.get<GetUserDto>(this.baseUrl).pipe(tap((usuario) => this.usuarioAtualSubject.next(usuario)));
+    return this.http
+      .get<GetUserDto>(this.baseUrl)
+      .pipe(tap((usuario) => this.usuarioAtualSubject.next(usuario)));
   }
 
   adicionarUsuario(usuario: AddUserDto): Observable<GetUserDto> {
-    return this.http.post<GetUserDto>(this.baseUrl, usuario).pipe(tap((salvo) => this.usuarioAtualSubject.next(salvo)));
+    return this.http
+      .post<GetUserDto>(this.baseUrl, usuario)
+      .pipe(tap((salvo) => this.usuarioAtualSubject.next(salvo)));
   }
 }
