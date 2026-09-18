@@ -61,9 +61,30 @@ if (behindProxy) {
   app.use(forceHttps());
 }
 
-const angularApp = new AngularNodeAppEngine(
-  behindProxy ? { trustProxyHeaders: ['x-forwarded-proto', 'x-forwarded-host'] } : undefined,
-);
+function parseEnvList(name: string): string[] | undefined {
+  const value = process.env[name];
+  if (!value) {
+    return undefined;
+  }
+  const items = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : undefined;
+}
+
+// Hosts aceitos no header Host/X-Forwarded-Host (proteção contra SSRF via host header) — definido
+// via env, não hardcoded, porque o hostname real só é conhecido no ambiente de deploy (Cloudflare
+// Tunnel, etc.), não no build. Sem ALLOWED_HOSTS setado, cai para 'localhost' em dev; atrás de
+// proxy em produção é obrigatório definir a env var com o(s) domínio(s) reais.
+const allowedHosts = parseEnvList('ALLOWED_HOSTS') ?? (behindProxy ? [] : ['localhost']);
+
+// Headers de proxy confiáveis (ex.: x-forwarded-proto, x-forwarded-host, x-forwarded-for) —
+// também via env, pois depende de quais headers o proxy da frente realmente injeta.
+const trustProxyHeaders =
+  parseEnvList('TRUST_PROXY_HEADERS') ?? (behindProxy ? ['x-forwarded-proto', 'x-forwarded-host'] : undefined);
+
+const angularApp = new AngularNodeAppEngine({ allowedHosts, trustProxyHeaders });
 
 /**
  * Rotas /api do BFF (auth + proxy pro api-dashfinras) — ver src/server/create-api-app.ts.
