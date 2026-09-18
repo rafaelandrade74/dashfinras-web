@@ -13,6 +13,10 @@
       não aparece em teste manual rápido, só quando alguém acessar via `http://` de verdade.
 - [ ] Cloudflare Tunnel (`cloudflared`) configurado pra injetar `X-Forwarded-Proto: https` nas
       requisições que encaminha pro origin — **não é automático**, ver seção abaixo.
+- [ ] **`ALLOWED_HOSTS`** setado com o(s) domínio(s) reais de produção (ex.:
+      `ALLOWED_HOSTS=app.exemplo.com`). Atrás de proxy (`BEHIND_PROXY=true`) não há mais um
+      fallback permissivo — sem essa variável, o `AngularNodeAppEngine` rejeita todo mundo (ver
+      `.env.example`).
 - [ ] Node só acessível pelo túnel (bind em `localhost`/rede interna) — nunca exposto direto na
       internet com uma porta pública, ver "Por que isso importa" abaixo.
 
