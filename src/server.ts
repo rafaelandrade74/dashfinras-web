@@ -14,6 +14,29 @@ import { forceHttps } from './server/force-https';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
+/**
+ * Sem esses handlers, uma exceção ou rejeição não tratada em qualquer lugar do processo (ex.:
+ * dentro de um .then() sem .catch(), um erro síncrono fora de um handler Express) derrubava o
+ * processo Node inteiro sem imprimir nada — o Node só garante o stack trace no stderr por padrão
+ * quando o processo já está indo abaixo, e se a plataforma de deploy mata o container em seguida
+ * (ou não captura stderr), a causa se perde. Aqui só logamos e mantemos o processo de pé; não
+ * chamamos process.exit() porque o objetivo explícito é não derrubar a aplicação por causa de um
+ * erro isolado numa requisição.
+ */
+process.on('uncaughtException', (error) => {
+  console.error('[uncaughtException] Erro não tratado — processo continua de pé:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection] Promise rejeitada sem catch — processo continua de pé:', reason);
+});
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(signal, () => {
+    console.log(`[${signal}] Sinal recebido — processo será encerrado pelo runtime/orquestrador.`);
+  });
+}
+
 const app = express();
 
 const sslCertPath = process.env['SSL_CERT_PATH'] ?? 'ssl/dev-server.crt';
