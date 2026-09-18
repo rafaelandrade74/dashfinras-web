@@ -16,7 +16,7 @@ describe('Login', () => {
     waitUntilReady: ReturnType<typeof vi.fn>;
   };
 
-  async function criarComponente(redirectUrl?: string): Promise<void> {
+  async function criarComponente(redirectUrl?: string, routePath = ''): Promise<void> {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, RouterModule.forRoot([])],
@@ -27,6 +27,7 @@ describe('Login', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
+              routeConfig: { path: routePath },
               queryParamMap: {
                 get: (chave: string) => (chave === 'redirectUrl' ? (redirectUrl ?? null) : null)
               }
@@ -120,9 +121,28 @@ describe('Login', () => {
     expect(component.senhaForca()).toBe('excelente');
   });
 
-  it('muda para a tela de cadastro', () => {
+  it('navega para a url de cadastro', () => {
     component.irPara('signup');
+    expect(router.navigate).toHaveBeenCalledWith(['/login', 'criar-conta'], {
+      queryParamsHandling: 'preserve'
+    });
+  });
+
+  it('navega para a url de recuperação de senha', () => {
+    component.irPara('forgot');
+    expect(router.navigate).toHaveBeenCalledWith(['/login', 'recuperar-senha'], {
+      queryParamsHandling: 'preserve'
+    });
+  });
+
+  it('inicia na tela de cadastro quando a rota é /login/criar-conta', async () => {
+    await criarComponente(undefined, 'criar-conta');
     expect(component.modo()).toBe('signup');
+  });
+
+  it('inicia na tela de recuperação de senha quando a rota é /login/recuperar-senha', async () => {
+    await criarComponente(undefined, 'recuperar-senha');
+    expect(component.modo()).toBe('forgot');
   });
 
   it('mostra erro quando as senhas de cadastro não coincidem', () => {

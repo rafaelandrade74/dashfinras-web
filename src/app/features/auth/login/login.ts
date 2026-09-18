@@ -1,4 +1,4 @@
-import { Component, computed, OnInit, signal } from '@angular/core';
+import { Component, computed, OnInit, signal, WritableSignal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -14,6 +14,18 @@ type ForcaSenha = 'vazia' | 'fraca' | 'media' | 'forte' | 'excelente';
 
 type Modo = 'login' | 'signup' | 'signup-sent' | 'forgot' | 'forgot-sent';
 
+const MODO_POR_PATH: Record<string, Modo> = {
+  '': 'login',
+  'criar-conta': 'signup',
+  'recuperar-senha': 'forgot'
+};
+
+const PATH_POR_MODO: Partial<Record<Modo, string>> = {
+  login: '',
+  signup: 'criar-conta',
+  forgot: 'recuperar-senha'
+};
+
 @Component({
   selector: 'app-login',
   standalone: false,
@@ -21,7 +33,7 @@ type Modo = 'login' | 'signup' | 'signup-sent' | 'forgot' | 'forgot-sent';
   templateUrl: './login.html',
 })
 export class Login implements OnInit {
-  readonly modo = signal<Modo>('login');
+  readonly modo: WritableSignal<Modo>;
   readonly checandoSessao = signal(true);
   readonly carregando = signal(false);
   readonly mensagemErro = signal<string | undefined>(undefined);
@@ -50,6 +62,9 @@ export class Login implements OnInit {
     private readonly router: Router,
     private readonly route: ActivatedRoute
   ) {
+    const path = this.route.snapshot.routeConfig?.path ?? '';
+    this.modo = signal<Modo>(MODO_POR_PATH[path] ?? 'login');
+
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       senha: ['', Validators.required]
@@ -108,6 +123,12 @@ export class Login implements OnInit {
   }
 
   irPara(modo: Modo): void {
+    const path = PATH_POR_MODO[modo];
+    if (path !== undefined) {
+      this.router.navigate(['/login', path].filter(Boolean), { queryParamsHandling: 'preserve' });
+      return;
+    }
+
     this.modo.set(modo);
     this.mensagemErro.set(undefined);
   }

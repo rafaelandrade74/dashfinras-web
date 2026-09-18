@@ -51,7 +51,14 @@ npm test          # ng test (vitest via @angular/build:unit-test)
 
 `AppRoutingModule` (`src/app/app-routing-module.ts`) lazy-loads four feature modules by path:
 
-- `/login` → `AuthModule` — email/password login, sign-up, and password-recovery screen, no guards.
+- `/login` → `AuthModule`, no guards. Login, sign-up, and password-recovery are distinct routes
+  sharing the same `Login` component (`auth-routing-module.ts`): `/login` (login), `/login/criar-conta`
+  (sign-up), `/login/recuperar-senha` (password recovery) — each with its own `title` for SEO/
+  browser-tab purposes. `Login` derives its initial `modo()` from `route.snapshot.routeConfig.path`,
+  and `irPara()` navigates between them (`queryParamsHandling: 'preserve'` to keep `redirectUrl`)
+  instead of just flipping a signal. The two post-submit confirmation screens (`signup-sent`,
+  `forgot-sent`) stay as in-component state with no route of their own — they're transient, not
+  something worth indexing or deep-linking to.
 - `/completar-cadastro` → `CadastroModule`, guarded by `authGuard` only.
 - `/convites/:token` → `ConviteModule` (public invite decision screen), guarded by `authGuard` then
   `accountGuard` — an unauthenticated or not-yet-registered visitor is bounced through login/cadastro
