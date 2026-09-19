@@ -12,6 +12,7 @@ import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { CoreModule } from './core/core-module';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { authExpiredInterceptor } from './core/interceptors/auth-expired.interceptor';
 import { MOEDA_MASK_LOCALE_PADRAO } from './core/directives/moeda-mask.directive';
 
 // Locale único suportado hoje (pt-BR): formata currency/date/number pipes em todo o
@@ -32,7 +33,7 @@ registerLocaleData(localePt, MOEDA_MASK_LOCALE_PADRAO);
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([loadingInterceptor])),
+    provideHttpClient(withInterceptors([loadingInterceptor, authExpiredInterceptor])),
     { provide: LOCALE_ID, useValue: MOEDA_MASK_LOCALE_PADRAO },
   ],
   bootstrap: [App],

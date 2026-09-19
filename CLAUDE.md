@@ -107,13 +107,36 @@ session exchange** between this BFF and the API anymore. **Do not reintroduce a 
   the access/refresh token pair (via `iron-session`) straight into this app's own same-origin
   cookie, `df_session` (`httpOnly`, `Secure`, `SameSite=Lax`) — no other network call involved.
   `logout` calls `supabaseAdmin.auth.signOut()` (best-effort) and destroys the cookie.
+- **"Manter-se logado" / session persistence** (`src/server/session.ts`): the login form has a
+  "Manter-se logado" checkbox (`manterLogado` in the `POST /api/auth/login` body). The session it
+  creates has two profiles, tracked by `SessionData.persistente` and `SessionData.lastActivityAt`:
+  - **Persistente** (checkbox marcado): cookie survives closing the browser; expires after **3
+    days** of inactivity, sliding — renewed on every authenticated request (throttled to once per
+    60s via `registrarAtividade`).
+  - **Não persistente** (default, checkbox desmarcado): the cookie itself has no `Max-Age`
+    (`configurarSessao` sets `cookieOptions.maxAge: undefined`, which iron-session treats as a
+    browser-session cookie with no seal-level ttl), so it disappears when the browser closes — but
+    the server *also* enforces a **1 hour** inactivity limit even while the tab stays open,
+    checked via `sessaoExpiradaPorInatividade` in `getValidSession`.
+  - Both limits are enforced server-side (never trust the cookie's own lifetime), and a session's
+    `persistente` flag never changes after login — token refresh (`getValidSession`) always
+    reapplies `configurarSessao(session, session.persistente)` so a non-persistent session can
+    never turn persistent.
+  - **Legacy sessions** (cookies issued before this feature, `persistente === undefined`) keep the
+    old fixed 14-day ttl and are never invalidated (`LEGACY_TTL_SECONDS` in `session.ts`) — this
+    compatibility branch can be removed once no such cookie can still be valid (14 days after this
+    feature's deploy).
+  - Sign-up's auto-login (`POST /api/auth/signup`) always creates a **non-persistent** session —
+    the user never saw the checkbox.
 - `src/server/session.ts` (`getValidSession`) decodes the JWT `exp`, and refreshes the session via
   Supabase (`refreshSession`) automatically when it's near expiry, before the token is used —
-  shared by `GET /api/auth/session` and the proxy below.
+  shared by `GET /api/auth/session` and the proxy below. It also applies the inactivity check and
+  sliding renewal described above.
 - `src/server/api-proxy.ts` (`createApiProxy`) is a generic `http-proxy-middleware` proxy mounted at
   `/api`, after `/api/auth`. It reads `df_session`, injects `Authorization: Bearer` into the
-  outgoing request to `api-dashfinras`, and responds `401` directly if there's no valid session —
-  the browser only ever talks to this app's own origin, never to `api-dashfinras` directly. This is
+  outgoing request to `api-dashfinras`, and responds `401 { code: 'not_authenticated' }` directly
+  if there's no valid session (including when the inactivity limit above has been hit) — the
+  browser only ever talks to this app's own origin, never to `api-dashfinras` directly. This is
   the **only** place the Supabase JWT reaches `api-dashfinras`, straight through as the Bearer token
   the API's own JWT middleware validates.
 - The `supabaseAdmin` client is injected into `createAuthRouter`/`createApiProxy`/`createApiApp`
@@ -122,7 +145,17 @@ session exchange** between this BFF and the API anymore. **Do not reintroduce a 
 - Client-side, `AuthService` (`core/services/auth.service.ts`) is now a thin `HttpClient` wrapper
   over `/api/auth/*` — no Supabase SDK in the browser bundle anymore. `waitUntilReady()` resolves
   after the boot-time `GET /api/auth/session` call; `isAuthenticated`/`nomeUsuario` reflect its
-  response. `authGuard`/`accountGuard` are unchanged (same public API).
+  response. `authGuard`/`accountGuard` are unchanged (same public API). `limparSessaoLocal()`
+  clears the local auth state without calling the API — used by `logout()` and by
+  `authExpiredInterceptor` below.
+- `core/interceptors/auth-expired.interceptor.ts` (`authExpiredInterceptor`, registered in
+  `app-module.ts` alongside `loadingInterceptor`): catches any `401 { code: 'not_authenticated' }`
+  response from `/api/*` — i.e. a session that expired while the tab was already open (the
+  inactivity limits above) — and redirects to `/login?redirectUrl=...`, same pattern as
+  `authGuard`. It deliberately ignores `/api/auth/login|signup|reset-password|logout|session`
+  (those already handle their own errors, and `/api/auth/session` never returns 401 — it responds
+  `200 { authenticated: false }` instead, precisely to avoid a redirect loop with this
+  interceptor).
 
 ### API layer
 
