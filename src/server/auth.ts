@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getSession, getValidSession, decodeJwtExp } from './session';
+import { getSession, getValidSession, decodeJwtExp, configurarSessao } from './session';
 
 export interface AuthRouterDeps {
   supabaseAdmin: Pick<SupabaseClient, 'auth'>;
@@ -26,10 +26,14 @@ export function createAuthRouter({ supabaseAdmin }: AuthRouterDeps): Router {
   const router = Router();
 
   router.post('/login', async (req, res) => {
-    const { email, password } = req.body ?? {};
+    const { email, password, manterLogado } = req.body ?? {};
     if (!email || !password) {
       return res.status(400).json({ code: 'invalid_request' });
     }
+
+    // Só `true` booleano conta como marcado — qualquer outro valor (ausente, string, etc.) é
+    // tratado como não persistente, por segurança.
+    const persistente = manterLogado === true;
 
     try {
       const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
@@ -38,9 +42,12 @@ export function createAuthRouter({ supabaseAdmin }: AuthRouterDeps): Router {
       }
 
       const session = await getSession(req, res);
+      configurarSessao(session, persistente);
       session.accessToken = data.session.access_token;
       session.refreshToken = data.session.refresh_token;
       session.expiresAt = decodeJwtExp(data.session.access_token);
+      session.persistente = persistente;
+      session.lastActivityAt = Math.floor(Date.now() / 1000);
       await session.save();
 
       return res.status(200).json({ ok: true });
@@ -71,10 +78,15 @@ export function createAuthRouter({ supabaseAdmin }: AuthRouterDeps): Router {
       }
 
       if (data.session) {
+        // Login automático após cadastro: o usuário não viu o checkbox "Manter-se logado", então
+        // a sessão nasce não persistente (FR-008).
         const session = await getSession(req, res);
+        configurarSessao(session, false);
         session.accessToken = data.session.access_token;
         session.refreshToken = data.session.refresh_token;
         session.expiresAt = decodeJwtExp(data.session.access_token);
+        session.persistente = false;
+        session.lastActivityAt = Math.floor(Date.now() / 1000);
         await session.save();
 
         return res.status(200).json({ ok: true, requiresEmailConfirmation: false });

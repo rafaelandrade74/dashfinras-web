@@ -63,6 +63,15 @@
               }
             </div>
 
+            <div class="field field-checkbox">
+              <input
+                id="login-manter"
+                type="checkbox"
+                formControlName="manterLogado"
+              />
+              <label for="login-manter">Manter-se logado</label>
+            </div>
+
             @if (mensagemErro()) {
               <div class="api-error" role="alert">
                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>

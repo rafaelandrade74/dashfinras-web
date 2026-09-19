@@ -42,6 +42,10 @@ export function createApiProxy(supabaseAdmin: Pick<SupabaseClient, 'auth'>): Req
   });
 
   return async (req, res, next) => {
+    // getValidSession já regrava o cookie (renovação deslizante / refresh de token) e escreve o
+    // Set-Cookie em `res` de forma síncrona (iron-session) antes de retornar — isso acontece antes
+    // do proxyMiddleware encaminhar a requisição. A API .NET não emite Set-Cookie nas respostas
+    // (ela só valida o Bearer, não gerencia sessão), então o proxy nunca sobrescreve esse header.
     const session = await getValidSession(req, res, supabaseAdmin);
     if (!session?.accessToken) {
       res.status(401).json({ code: 'not_authenticated' });

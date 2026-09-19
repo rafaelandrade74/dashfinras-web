@@ -67,7 +67,8 @@ export class Login implements OnInit {
 
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      senha: ['', Validators.required]
+      senha: ['', Validators.required],
+      manterLogado: [false]
     });
 
     this.signupForm = this.fb.group({
@@ -146,10 +147,10 @@ export class Login implements OnInit {
 
     this.carregando.set(true);
     this.mensagemErro.set(undefined);
-    const { email, senha } = this.loginForm.value;
+    const { email, senha, manterLogado } = this.loginForm.value;
 
     this.authService
-      .login(email, senha)
+      .login(email, senha, manterLogado)
       .then((resultado) => {
         if (resultado.error) {
           this.mensagemErro.set(resultado.error);
