@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 
 interface IconeFlutuante {
   icone: string;
@@ -45,11 +45,12 @@ export class Loading implements OnInit, OnDestroy {
     { icone: 'ti-currency-dollar', cor: 'ink-faint', left: '78%', top: '28%', tamanho: '13px', duracao: '4.2s', atraso: '2.4s' }
   ];
 
-  dicaAtual = DICAS[0];
-  dicaVisivel = true;
+  readonly dicaAtual = signal(DICAS[0]);
+  readonly dicaVisivel = signal(true);
 
   private indiceDica = 0;
   private intervalId?: ReturnType<typeof setInterval>;
+  private timeoutId?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.intervalId = setInterval(() => this.proximaDica(), TROCA_DICA_MS);
@@ -57,14 +58,15 @@ export class Loading implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.intervalId);
+    clearTimeout(this.timeoutId);
   }
 
   private proximaDica(): void {
-    this.dicaVisivel = false;
-    setTimeout(() => {
+    this.dicaVisivel.set(false);
+    this.timeoutId = setTimeout(() => {
       this.indiceDica = (this.indiceDica + 1) % DICAS.length;
-      this.dicaAtual = DICAS[this.indiceDica];
-      this.dicaVisivel = true;
+      this.dicaAtual.set(DICAS[this.indiceDica]);
+      this.dicaVisivel.set(true);
     }, 520);
   }
 }

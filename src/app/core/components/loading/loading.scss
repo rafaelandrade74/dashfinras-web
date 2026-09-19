@@ -197,16 +197,17 @@
 /* Tip area */
 .tip-wrap {
   position: relative;
-  min-height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Sem largura explícita o flex item encolhe a ~0 (o único filho é absoluto),
+     o que faz o max-width do .tip resolver para 0 e quebrar uma palavra por linha. */
+  width: 100%;
+  min-height: 68px;
 }
 .tip {
   position: absolute;
+  top: 0;
   left: 50%;
-  width: 320px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 320px;
   font-size: 14px;
   color: var(--ink-soft);
   line-height: 1.55;
@@ -214,6 +215,8 @@
   transform: translate(-50%, 6px);
   transition: opacity 0.5s ease, transform 0.5s ease;
   text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
   margin: 0;
 }
 .tip.visible {
