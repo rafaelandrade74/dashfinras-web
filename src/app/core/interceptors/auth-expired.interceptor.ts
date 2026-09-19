@@ -1,5 +1,5 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
@@ -23,8 +23,11 @@ const ROTAS_IGNORADAS = [
  * em vez de deixar o erro genérico aparecer na tela (SC-007).
  */
 export const authExpiredInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
+  // AuthService NÃO pode ser injetado aqui de forma eager: o construtor dele já dispara
+  // GET /api/auth/session, que passa por este interceptor — isso vira dependência circular, a
+  // exceção escapa antes do finalize do loadingInterceptor e o spinner global nunca some. Por isso
+  // a resolução é adiada (Injector) até o momento em que um 401 realmente acontece.
+  const injector = inject(Injector);
 
   return next(req).pipe(
     catchError((erro: unknown) => {
@@ -35,7 +38,8 @@ export const authExpiredInterceptor: HttpInterceptorFn = (req, next) => {
         !ROTAS_IGNORADAS.some((rota) => req.url.endsWith(rota));
 
       if (eExpiracaoDeSessao) {
-        authService.limparSessaoLocal();
+        const router = injector.get(Router);
+        injector.get(AuthService).limparSessaoLocal();
         router.navigateByUrl(`/login?redirectUrl=${encodeURIComponent(router.url)}`);
       }
 
