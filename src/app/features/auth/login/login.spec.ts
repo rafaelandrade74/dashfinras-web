@@ -16,7 +16,7 @@ describe('Login', () => {
     waitUntilReady: ReturnType<typeof vi.fn>;
   };
 
-  async function criarComponente(redirectUrl?: string): Promise<void> {
+  async function criarComponente(redirectUrl?: string, routePath = ''): Promise<void> {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [ReactiveFormsModule, RouterModule.forRoot([])],
@@ -27,6 +27,7 @@ describe('Login', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
+              routeConfig: { path: routePath },
               queryParamMap: {
                 get: (chave: string) => (chave === 'redirectUrl' ? (redirectUrl ?? null) : null)
               }
@@ -43,6 +44,7 @@ describe('Login', () => {
     vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     await fixture.whenStable();
+    fixture.detectChanges();
   }
 
   beforeEach(async () => {
@@ -70,26 +72,55 @@ describe('Login', () => {
     expect(authServiceMock.login).not.toHaveBeenCalled();
   });
 
-  it('chama authService.login com e-mail e senha válidos', async () => {
-    component.loginForm.setValue({ email: 'rafael@exemplo.com', senha: 'senha123' });
+  it('chama authService.login com e-mail, senha e manterLogado (padrão desmarcado)', async () => {
+    component.loginForm.setValue({
+      email: 'rafael@exemplo.com',
+      senha: 'senha123',
+      manterLogado: false
+    });
     component.entrar();
     await fixture.whenStable();
 
-    expect(authServiceMock.login).toHaveBeenCalledWith('rafael@exemplo.com', 'senha123');
+    expect(authServiceMock.login).toHaveBeenCalledWith('rafael@exemplo.com', 'senha123', false);
   });
 
-  it('exibe mensagem de erro quando authService.login falha', async () => {
+  it('checkbox manterLogado vem desmarcado por padrão', () => {
+    expect(component.loginForm.controls['manterLogado'].value).toBe(false);
+  });
+
+  it('repassa manterLogado=true a authService.login quando o usuário marca a opção', async () => {
+    component.loginForm.setValue({
+      email: 'rafael@exemplo.com',
+      senha: 'senha123',
+      manterLogado: true
+    });
+    component.entrar();
+    await fixture.whenStable();
+
+    expect(authServiceMock.login).toHaveBeenCalledWith('rafael@exemplo.com', 'senha123', true);
+  });
+
+  it('exibe mensagem de erro quando authService.login falha e mantém manterLogado marcado', async () => {
     authServiceMock.login.mockResolvedValue({ error: 'E-mail ou senha incorretos.' });
-    component.loginForm.setValue({ email: 'rafael@exemplo.com', senha: 'senhaerrada' });
+    component.loginForm.setValue({
+      email: 'rafael@exemplo.com',
+      senha: 'senhaerrada',
+      manterLogado: true
+    });
     component.entrar();
     await fixture.whenStable();
 
     expect(component.mensagemErro()).toBe('E-mail ou senha incorretos.');
+    expect(component.loginForm.controls['manterLogado'].value).toBe(true);
   });
 
   it('exibe mensagem de erro e para o carregamento quando authService.login rejeita', async () => {
     authServiceMock.login.mockRejectedValue(new Error('falha de rede'));
-    component.loginForm.setValue({ email: 'rafael@exemplo.com', senha: 'senha123' });
+    component.loginForm.setValue({
+      email: 'rafael@exemplo.com',
+      senha: 'senha123',
+      manterLogado: false
+    });
     component.entrar();
     expect(component.carregando()).toBe(true);
     await fixture.whenStable();
@@ -120,9 +151,48 @@ describe('Login', () => {
     expect(component.senhaForca()).toBe('excelente');
   });
 
-  it('muda para a tela de cadastro', () => {
+  it('exibe o checkbox "Manter-se logado" no modo login', () => {
+    const checkbox: HTMLInputElement | null =
+      fixture.nativeElement.querySelector('#login-manter');
+    expect(checkbox).toBeTruthy();
+    expect(checkbox?.type).toBe('checkbox');
+    expect(checkbox?.checked).toBe(false);
+  });
+
+  it('não exibe o checkbox "Manter-se logado" no modo cadastro', async () => {
+    await criarComponente(undefined, 'criar-conta');
+    const checkbox = fixture.nativeElement.querySelector('#login-manter');
+    expect(checkbox).toBeNull();
+  });
+
+  it('não exibe o checkbox "Manter-se logado" no modo recuperação de senha', async () => {
+    await criarComponente(undefined, 'recuperar-senha');
+    const checkbox = fixture.nativeElement.querySelector('#login-manter');
+    expect(checkbox).toBeNull();
+  });
+
+  it('navega para a url de cadastro', () => {
     component.irPara('signup');
+    expect(router.navigate).toHaveBeenCalledWith(['/login', 'criar-conta'], {
+      queryParamsHandling: 'preserve'
+    });
+  });
+
+  it('navega para a url de recuperação de senha', () => {
+    component.irPara('forgot');
+    expect(router.navigate).toHaveBeenCalledWith(['/login', 'recuperar-senha'], {
+      queryParamsHandling: 'preserve'
+    });
+  });
+
+  it('inicia na tela de cadastro quando a rota é /login/criar-conta', async () => {
+    await criarComponente(undefined, 'criar-conta');
     expect(component.modo()).toBe('signup');
+  });
+
+  it('inicia na tela de recuperação de senha quando a rota é /login/recuperar-senha', async () => {
+    await criarComponente(undefined, 'recuperar-senha');
+    expect(component.modo()).toBe('forgot');
   });
 
   it('mostra erro quando as senhas de cadastro não coincidem', () => {

@@ -39,9 +39,11 @@ export class AuthService {
     return this.readyPromise;
   }
 
-  async login(email: string, password: string): Promise<AuthResult> {
+  async login(email: string, password: string, manterLogado = false): Promise<AuthResult> {
     try {
-      await firstValueFrom(this.http.post('/api/auth/login', { email, password }));
+      await firstValueFrom(
+        this.http.post('/api/auth/login', { email, password, manterLogado }),
+      );
       this.sessionSubject.next({ email });
       return {};
     } catch (erro) {
@@ -83,8 +85,17 @@ export class AuthService {
     try {
       await firstValueFrom(this.http.post('/api/auth/logout', {}));
     } finally {
-      this.sessionSubject.next(undefined);
+      this.limparSessaoLocal();
     }
+  }
+
+  /**
+   * Zera o estado local de autenticação sem chamar a API. Usado por logout() e pelo
+   * authExpiredInterceptor: quando o servidor já respondeu 401 not_authenticated, a sessão já
+   * está destruída do lado dele, então um novo POST /api/auth/logout seria redundante.
+   */
+  limparSessaoLocal(): void {
+    this.sessionSubject.next(undefined);
   }
 
   get isAuthenticated(): boolean {

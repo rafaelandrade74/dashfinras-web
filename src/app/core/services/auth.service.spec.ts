@@ -112,6 +112,36 @@ describe('AuthService', () => {
     });
   });
 
+  it('envia manterLogado=false por padrão no corpo do login', async () => {
+    flushSessionCheck();
+
+    const resultadoPromise = service.login('rafael@exemplo.com', 'senha123');
+    const req = httpMock.expectOne('/api/auth/login');
+    expect(req.request.body).toEqual({
+      email: 'rafael@exemplo.com',
+      password: 'senha123',
+      manterLogado: false,
+    });
+    req.flush({ ok: true });
+
+    await resultadoPromise;
+  });
+
+  it('envia manterLogado=true quando passado explicitamente', async () => {
+    flushSessionCheck();
+
+    const resultadoPromise = service.login('rafael@exemplo.com', 'senha123', true);
+    const req = httpMock.expectOne('/api/auth/login');
+    expect(req.request.body).toEqual({
+      email: 'rafael@exemplo.com',
+      password: 'senha123',
+      manterLogado: true,
+    });
+    req.flush({ ok: true });
+
+    await resultadoPromise;
+  });
+
   it('encaminha a redirectUrl informada para o servidor no cadastro', async () => {
     flushSessionCheck();
 
@@ -137,5 +167,16 @@ describe('AuthService', () => {
     await logoutPromise;
 
     expect(service.isAuthenticated).toBe(false);
+  });
+
+  it('limparSessaoLocal zera o estado local sem chamar a API', async () => {
+    flushSessionCheck(true);
+    await service.waitUntilReady();
+    expect(service.isAuthenticated).toBe(true);
+
+    service.limparSessaoLocal();
+
+    expect(service.isAuthenticated).toBe(false);
+    httpMock.expectNone('/api/auth/logout');
   });
 });

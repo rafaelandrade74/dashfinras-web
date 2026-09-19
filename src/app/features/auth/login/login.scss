@@ -184,6 +184,24 @@
   color: var(--ink-faint);
 }
 
+.field-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+}
+.field-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.field-checkbox label {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
 /* ── Password strength ── */
 .password-strength {
   display: flex;
@@ -249,6 +267,12 @@
 }
 .password-checklist li.met i {
   color: var(--teal);
+}
+
+.forgot-row {
+  display: flex;
+  justify-content: center;
+  margin-top: -8px;
 }
 
 /* ── Links ── */
